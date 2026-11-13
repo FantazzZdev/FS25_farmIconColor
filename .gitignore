@@ -1,0 +1,16 @@
+# Build output
+/build/
+/dist/
+*.zip
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# Local test data (logs, savegames) - never commit
+log*.txt
+/local/

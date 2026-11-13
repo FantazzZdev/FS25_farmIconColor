@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<modDesc descVersion="110">
+    <title>
+        <en>Farm Icon Color</en>
+        <fr>Icônes De Fermes Personnalisées</fr>
+        <de>Bauernhof-Symbolfarbe</de>
+    </title>
+
+    <description>
+        <en>
+            <![CDATA[Farm Icon Color allows you to give every farm a clear visual identity in Farming Simulator 25.
+
+With this mod, you can choose a custom farm icon and apply your own color. The selected icons and colors are visible in the multiplayer menu, in the farm list, on the map and through in-game markers.
+
+The mod is especially useful in multiplayer games with several players, making it easier to quickly identify each farm. It can also be used in singleplayer to add more customization to your farm.
+
+Features:
+- Select a custom farm icon.
+- Change the farm color.
+- Display the custom icon in the farm creation and editing menu.
+- Display farm colors on the map.
+- Improve visual farm identification in singleplayer and multiplayer.
+
+Inputs:
+- In singleplayer: press F9 to open the farm color customization window.
+- In the farm creation or editing menu: use the left/right arrows to change the farm icon.]]>
+        </en>
+        <fr>
+            <![CDATA[Icônes De Fermes Personnalisées permet de donner une vraie identité visuelle à chaque ferme dans Farming Simulator 25.
+
+Avec ce mod, vous pouvez choisir un logo personnalisé pour votre ferme et appliquer la couleur de votre choix. Les logos et les couleurs selectionnés sont visibles dans le menu multijoueur, dans la liste des fermes, sur la carte et via les repères en jeu.
+
+Le mod est particulierement utile dans les parties multijoueur avec plusieurs joueurs, afin de differencier rapidement chaque exploitation. Il peut également etre utilisé en solo pour personnaliser davantage votre ferme.
+
+Fonctionnalités :
+- Sélection d'un logo de ferme personnalisé.
+- Modification de la couleur de la ferme.
+- Affichage du logo personnalisé dans le menu de création et de modification de ferme.
+- Affichage des couleurs de ferme sur la carte.
+- Meilleure identification visuelle des fermes en solo et en multijoueur.
+
+Entrées :
+- En solo : appuyez sur F9 pour ouvrir la fenêtre de personnalisation de la couleur de ferme.
+- Dans le menu de création ou de modification de ferme : utilisez les flèches gauche/droite pour changer de logo.]]>
+        </fr>
+        <de>
+            <![CDATA[Bauernhof-Symbolfarbe ermoeglicht es, jedem Hof in Farming Simulator 25 eine klare visuelle Identitaet zu geben.
+
+Mit diesem Mod kannst du ein individuelles Hofsymbol auswaehlen und deine eigene Farbe festlegen. Die ausgewaehlten Symbole und Farben werden im Mehrspieler-Menue, in der Hofliste, auf der Karte und bei den Markierungen im Spiel angezeigt.
+
+Der Mod ist besonders nuetzlich in Mehrspieler-Partien mit mehreren Spielern, da jeder Hof schneller und einfacher erkannt werden kann. Er kann auch im Einzelspieler-Modus verwendet werden, um den eigenen Hof staerker zu personalisieren.
+
+Funktionen:
+- Auswahl eines individuellen Hofsymbols.
+- Aenderung der Hoffarbe.
+- Anzeige des individuellen Symbols im Menue zum Erstellen und Bearbeiten eines Hofes.
+- Anzeige der Hoffarben auf der Karte.
+- Bessere visuelle Erkennung von Hoefen im Einzelspieler- und Mehrspieler-Modus.
+
+Eingaben:
+- Im Einzelspieler-Modus: Druecke F9, um das Fenster zur Anpassung der Hoffarbe zu oeffnen.
+- Im Menue zum Erstellen oder Bearbeiten eines Hofes: Verwende die Pfeile nach links/rechts, um das Hofsymbol zu aendern.]]>
+        </de>
+    </description>
+
+    <author>Equinox</author>
+    <version>1.1.0.0</version>
+    <iconFilename>icon_farmIconColor.dds</iconFilename>
+    <multiplayer supported="true" />
+
+    <l10n>
+        <text name="farmIconColor_logoSelector">
+            <en>Farm logo</en>
+            <fr>Logo de la ferme</fr>
+            <de>Hoflogo</de>
+        </text>
+        <text name="input_FARMICONCOLOR_OPEN_SOLO_PICKER">
+            <en>Color</en>
+            <fr>Couleur</fr>
+            <de>Farbe</de>
+        </text>
+        <text name="input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO">
+            <en>Import</en>
+            <fr>Importer</fr>
+            <de>Import</de>
+        </text>
+    </l10n>
+
+    <actions>
+        <action name="FARMICONCOLOR_OPEN_SOLO_PICKER" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
+        <action name="FARMICONCOLOR_IMPORT_CUSTOM_LOGO" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
+    </actions>
+
+    <inputBinding>
+        <actionBinding action="FARMICONCOLOR_OPEN_SOLO_PICKER">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_f9" />
+        </actionBinding>
+        <actionBinding action="FARMICONCOLOR_IMPORT_CUSTOM_LOGO">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_insert" />
+        </actionBinding>
+    </inputBinding>
+
+    <extraSourceFiles>
+        <sourceFile filename="scripts/farmIconColor.lua" />
+    </extraSourceFiles>
+</modDesc>

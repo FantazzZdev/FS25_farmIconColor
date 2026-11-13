@@ -1,0 +1,683 @@
+PASSATION — FS25_farmIconColor
+Projet : Farming Simulator 25 — Farm Icon Color
+Auteur du mod : Equinox
+Version de développement actuelle : 1.1.0.0
+ModHub public : https://www.farming-simulator.com/mod.php?mod_id=366058
+
+============================================================
+1. OBJECTIF GÉNÉRAL DU MOD
+============================================================
+
+Le mod permet de personnaliser les fermes de Farming Simulator 25 avec :
+- une couleur de ferme personnalisée ;
+- un logo de ferme personnalisé ;
+- affichage du logo/couleur dans les menus, listes de fermes, carte, joueurs, hotspots, terres, etc.
+
+Le mod est déjà publié sur ModHub dans une version précédente.
+La version actuelle en développement ajoute surtout la possibilité d'importer des logos personnalisés depuis le dossier utilisateur.
+
+À terme, le but est que les logos importés deviennent réellement liés à la sauvegarde / au serveur :
+- un administrateur importe un DDS une seule fois ;
+- le logo est enregistré côté serveur / sauvegarde ;
+- le serveur peut redémarrer sans perdre le logo ;
+- les joueurs connectés reçoivent automatiquement ce logo ;
+- un nouveau joueur qui rejoint plus tard reçoit aussi le logo ;
+- aucun joueur ne doit avoir à copier manuellement le DDS dans son propre dossier ;
+- le fonctionnement doit être compatible avec un serveur dédié type VeryGames.
+
+Une fois cette partie terminée, l'étape suivante est une vraie fenêtre de sélection visuelle des logos :
+- bouton "Sélectionner logo" ;
+- grille de miniatures ;
+- environ 4 logos par ligne ;
+- une seule longue page avec scroll vertical ;
+- pas de pagination ;
+- clic sur le logo puis confirmation ;
+- logos intégrés + logos personnalisés dans la même liste.
+
+============================================================
+2. ÉTAT ACTUEL — CE QUI FONCTIONNE DÉJÀ
+============================================================
+
+Le ZIP actuel contient principalement :
+- modDesc.xml
+- scripts/farmIconColor.lua
+- les textures/logos intégrés
+- les fichiers XML/l10n habituels
+
+Le fichier principal est :
+scripts/farmIconColor.lua
+
+Fonctionnalités validées en jeu :
+
+A. Logos personnalisés locaux
+Le dossier utilisé est :
+
+Documents\My Games\FarmingSimulator2025\
+modSettings\FS25_farmIconColor\customLogos\
+
+Les logos sont des fichiers DDS, par exemple :
+Domaine3Epis.dds
+TerraPro.dds
+LAbeilleCool.dds
+
+Spécifications utilisées :
+- 256 x 256
+- DDS
+- BC3 / DXT5 avec alpha
+- fond transparent
+- blanc pur #FFFFFF lorsqu'on veut permettre la recoloration par la couleur de ferme
+- mipmaps recommandés
+
+B. Import dynamique
+L'administrateur peut ajouter un nouveau DDS dans customLogos pendant que le jeu est lancé puis appuyer sur INSERT / Importer.
+
+Le scan dynamique fonctionne.
+
+C. Bouton "Importer"
+Le bouton visuel dans la fenêtre de modification de ferme fonctionne :
+- clavier INSERT ;
+- clic souris sur le bouton.
+
+Le clic souris a nécessité un hook manuel sur mouseEvent, car le bouton cloné n'était pas correctement déclenché avec le système GUI standard.
+
+NE PAS casser cette partie.
+
+D. Plusieurs logos
+L'import de plusieurs logos en même temps fonctionne.
+
+E. Ordre
+Lors d'un import manuel pendant la session, les nouveaux logos sont ajoutés à la suite des logos déjà enregistrés.
+
+Important :
+au redémarrage complet, l'ordre dépend encore du scan local trié par nom de fichier.
+Une future persistance du catalogue serveur devra conserver l'ordre définitif.
+
+F. Sauvegarde des paramètres de ferme
+Le mod sait déjà sauvegarder/restaurer :
+- couleur de ferme ;
+- identifiant/nom du logo sélectionné.
+
+Le stockage actuel de ces informations est principalement sous :
+modSettings/FS25_farmIconColor/<clé_sauvegarde>.xml
+
+Il existe aussi une logique de compatibilité legacy avec la sauvegarde.
+
+G. Synchronisation réseau existante
+Il existe déjà un événement :
+FarmIconColorSyncEvent
+
+Il synchronise :
+- farmId
+- couleur
+- logoName
+
+Il NE synchronise PAS le fichier DDS ni les données de l'image.
+
+Le serveur rebroadcast les visuels et effectue des synchronisations périodiques.
+
+============================================================
+3. STRUCTURE ACTUELLE DES LOGOS PERSONNALISÉS
+============================================================
+
+Structures importantes dans FarmIconColor :
+
+self.logos
+self.logoOrder
+self.customLogoPaths
+self.customLogoDisplayNames
+self.generatedCustomLogoPaths
+
+Un fichier comme :
+TerraPro.dds
+
+devient typiquement :
+custom_terrapro
+
+Le fichier est enregistré dans :
+self.logos[logoId]
+self.customLogoPaths[logoId]
+self.customLogoDisplayNames[logoId]
+
+La fonction d'import actuelle est :
+
+FarmIconColor:importCustomLogosFromFolder()
+
+Elle :
+1. vérifie que l'utilisateur est administrateur ;
+2. rescanne customLogos ;
+3. enregistre uniquement les nouveaux fichiers ;
+4. conserve les logos déjà présents dans l'ordre actuel ;
+5. dans le BUILD ACTUEL, lance encore un diagnostic DDS expérimental.
+
+============================================================
+4. ADMINISTRATEUR / MULTIJOUEUR
+============================================================
+
+La fonction :
+FarmIconColor:isCurrentUserFarmIconAdmin()
+
+gère notamment :
+- solo ;
+- serveur auto-hébergé / listen server ;
+- mission.isMasterUser ;
+- userManager / getIsMasterUser().
+
+Les tests ont surtout été faits en serveur multijoueur auto-hébergé.
+
+Le contrôle doit être vérifié de façon stricte côté serveur pour un futur upload provenant d'un client :
+NE PAS faire confiance uniquement au bouton visible côté client.
+
+============================================================
+5. CONTRAINTE VERYGAMES IMPORTANTE
+============================================================
+
+Le serveur final ciblé est notamment VeryGames.
+
+Point déjà découvert :
+- ne PAS proposer FTP comme solution ;
+- l'utilisateur n'a pas accès à une méthode FTP exploitable pour ce workflow.
+
+Des essais précédents ont montré :
+- un sous-dossier arbitraire dans savegame1/customLogos/ n'était pas forcément conservé dans le ZIP de sauvegarde téléchargé depuis VeryGames ;
+- en revanche, un fichier XML placé directement à la racine de la sauvegarde était conservé.
+
+Donc pour la persistance définitive, privilégier un fichier racine du type :
+farmIconColorCustomLogos.xml
+
+ou une solution intégrée proprement au système de sauvegarde FS25.
+
+============================================================
+6. PROBLÈME PRINCIPAL À RÉSOUDRE
+============================================================
+
+Le vrai problème est de transférer/persister le contenu du DDS.
+
+Objectif logique :
+
+ADMIN
+customLogos/MonLogo.dds
+        |
+        v
+[IMPORTER]
+        |
+        v
+lecture des données exploitables du logo
+        |
+        v
+upload au serveur
+        |
+        v
+catalogue serveur persistant
+        |
+        v
+sauvegarde
+        |
+        +----> clients déjà connectés
+        |
+        +----> nouveaux joueurs à leur connexion
+        |
+        v
+reconstruction d'un fichier texture local
+        |
+        v
+enregistrement dans self.logos
+        |
+        v
+logo utilisable partout dans l'UI
+
+============================================================
+7. TESTS DE LECTURE DU DDS DÉJÀ EFFECTUÉS
+============================================================
+
+IMPORTANT :
+beaucoup de temps a déjà été consacré à tester les API GIANTS.
+Ne pas refaire les mêmes hypothèses sans raison.
+
+----------------------------------------
+TEST 1 — io.open
+----------------------------------------
+
+Le runtime expose io.open, mais la lecture binaire utilisable n'est pas disponible comme attendu.
+
+On ne peut pas faire simplement :
+io.open(path, "rb"):read("*a")
+
+La lecture complète du DDS par Lua standard n'a pas été obtenue.
+
+----------------------------------------
+TEST 2 — API GIANTS fichier
+----------------------------------------
+
+copyFile(source, destination, overwrite)
+FONCTIONNE.
+
+Le moteur peut copier le DDS en binaire sans le décoder.
+
+getFileMD5 a été essayé, mais certaines signatures provoquaient des warnings.
+Ne pas s'appuyer dessus aveuglément.
+
+createFile(..., FileAccess.READ)
+renvoie un handle 0 dans ce contexte.
+Donc ce n'est PAS une lecture valide.
+
+fileRead / readFile / getFileSize n'étaient pas disponibles comme fonctions globales utilisables.
+
+En revanche :
+createFile(..., FileAccess.WRITE) + fileWrite
+fonctionnent pour écrire des fichiers.
+
+----------------------------------------
+TEST 3 — streams réseau
+----------------------------------------
+
+Le runtime expose notamment :
+createStream
+streamReadUInt8
+streamWriteUInt8
+streamWriteStream
+netSendStream
+
+ATTENTION :
+un test utilisant :
+writeBitVectorMapToStream()
+puis
+readBitVectorMapFromStream()
+
+sur un stream mémoire créé manuellement a fait CRASHER complètement Farming Simulator 25.
+
+Le crash survenait juste après :
+streamSetReadOffset(0)
+
+et avant/pendant :
+readBitVectorMapFromStream()
+
+Il n'y avait pas d'erreur Lua récupérable.
+Le moteur natif tombait.
+
+CONCLUSION :
+NE PAS réutiliser readBitVectorMapFromStream() de cette manière.
+
+----------------------------------------
+TEST 4 — loadBitVectorMapFromFile
+----------------------------------------
+
+Étonnamment :
+loadBitVectorMapFromFile()
+
+accepte le DDS personnalisé.
+
+Le DDS Domaine3Epis.dds est bien reconnu comme :
+256 x 256.
+
+getBitVectorMapPoint()
+renvoie des valeurs.
+
+Cela semblait prometteur.
+
+----------------------------------------
+TEST 5 — interprétation RGBA
+----------------------------------------
+
+Nous avons tenté d'interpréter les valeurs retournées comme des canaux :
+0
+8
+16
+24
+
+Résultat :
+FAUX.
+
+Les PNG générés à partir de ces valeurs produisent des bandes rouges/noires et du bruit.
+
+Les quatre canaux testés séparément donnent tous des motifs corrompus.
+
+Exemple de statistiques observées :
+- canal 0 : couverture ~37.6 %
+- canal 8 : ~22.8 %
+- canal 16 : ~37.0 %
+- canal 24 : ~20.1 %
+
+Aucun canal ne représente correctement le logo ni son alpha.
+
+CONCLUSION :
+BitVectorMap ne fournit pas simplement les pixels RGBA du DDS de la façon supposée.
+
+----------------------------------------
+TEST 6 — reconstruction DDS DXT5 directe
+----------------------------------------
+
+Dernier build actuel.
+
+Hypothèse testée :
+un DDS BC3/DXT5 256x256 possède un mip principal compressé de 65536 octets.
+
+Or le BitVectorMap 8 bits retournait également :
+256 * 256 = 65536 valeurs.
+
+Nous avons donc essayé de traiter ces valeurs comme si elles étaient directement le flux BC3/DXT5.
+
+Le mod :
+1. lit les 65536 valeurs via BitVectorMap ;
+2. fabrique un header DDS/DXT5 ;
+3. écrit :
+   generatedLogos/custom_domaine3epis_roundtrip.dds
+4. demande à FS25 de charger ce nouveau DDS.
+
+Résultat :
+FS25 ACCEPTE le DDS reconstruit comme texture valide,
+MAIS l'image affichée est toujours totalement corrompue.
+
+Le log du dernier test contenait :
+
+[FS25_farmIconColor][DDS-ROUNDTRIP]
+source id=custom_domaine3epis size=256x256
+mapBytes=65536
+expectedBC3TopMip=65536
+hypothesisMatch=true
+
+Puis :
+payloadBytes=65536
+totalBytes=65664
+
+Et :
+reconstructed DDS texture load ... usable=true
+
+Mais visuellement :
+bandes / bruit rouge-noir, pas le logo.
+
+CONCLUSION DÉFINITIVE :
+les 65536 valeurs retournées par BitVectorMap NE SONT PAS les octets BC3/DXT5 bruts du mip principal.
+La correspondance de taille était une coïncidence.
+
+============================================================
+8. BUILD ACTUEL À INSPECTER
+============================================================
+
+Le ZIP remis avec cette passation est le dernier build disponible :
+
+FS25_farmIconColor.zip
+
+Il contient encore le diagnostic :
+FarmIconColor:diagnoseCustomLogoEngineIOSupport()
+
+Ce diagnostic utilise le préfixe log :
+[FS25_farmIconColor][DDS-ROUNDTRIP]
+
+Dans :
+FarmIconColor:importCustomLogosFromFolder()
+
+on trouve encore :
+
+if loaded == true then
+    self:diagnoseCustomLogoEngineIOSupport()
+end
+
+IMPORTANT POUR LA SUITE :
+cette partie est EXPÉRIMENTALE.
+Elle ne fait pas partie du comportement final voulu.
+
+Avant une version propre / publication :
+- supprimer ce diagnostic ;
+- supprimer les prints de diagnostic ;
+- ne pas laisser de spam log.
+
+La version ModHub précédente avait déjà reçu un retour GIANTS demandant de supprimer les logs/debug inutiles.
+
+FarmIconColor.DEBUG est normalement à false dans les builds propres.
+
+============================================================
+9. CE QU'IL NE FAUT PAS CASSER
+============================================================
+
+Merci de préserver absolument :
+
+1. sélection et affichage des logos intégrés ;
+2. recoloration des logos avec la couleur de ferme ;
+3. changement couleur dans les menus ;
+4. synchronisation actuelle farmId/couleur/logoName ;
+5. persistance couleur/logo sélectionné ;
+6. import local via INSERT ;
+7. bouton Importer visible ;
+8. clic souris sur le bouton Importer ;
+9. import de plusieurs DDS en une passe ;
+10. ordre append-only pendant la session ;
+11. menus/liste/carte/hotspots déjà gérés ;
+12. fonctionnement solo et multijoueur existant.
+
+Modifier la partie réseau DDS séparément, avec une architecture isolée si possible.
+
+============================================================
+10. FORMAT FINAL SOUHAITÉ POUR LE CATALOGUE SERVEUR
+============================================================
+
+Le serveur doit idéalement posséder un catalogue du type :
+
+logoId
+displayName
+ordre
+largeur
+hauteur
+format/version
+taille payload
+checksum/hash
+payload image
+
+Exemple conceptuel :
+
+<farmIconColorCustomLogos version="1">
+    <logo
+        id="custom_terrapro"
+        name="TerraPro"
+        order="35"
+        width="256"
+        height="256"
+        format="...">
+        <data>
+            ...
+        </data>
+    </logo>
+</farmIconColorCustomLogos>
+
+Ce XML n'est qu'un concept.
+Il peut être remplacé par une meilleure solution si on trouve une méthode FS25 native plus propre.
+
+============================================================
+11. PISTES À EXPLORER MAINTENANT
+============================================================
+
+La priorité est d'éviter encore une série de tests au hasard.
+
+Il faut d'abord inspecter :
+- FarmIconColor actuel ;
+- les bindings/API GIANTS réellement disponibles dans FS25 1.23.x ;
+- les mods FS25 existants qui transfèrent ou reconstruisent des fichiers binaires/images ;
+- NetworkUtil ;
+- éventuellement les mécanismes natifs de transfert de fichiers utilisés par le jeu.
+
+QUESTIONS À RÉSOUDRE :
+
+A. Existe-t-il une API GIANTS cachée / native qui permet :
+- fichier -> buffer/mémoire ;
+- fichier -> stream réseau ;
+- texture -> pixels ;
+- texture -> buffer ;
+- sauvegarde/export d'une texture ?
+
+B. Existe-t-il un mécanisme de NetworkUtil pour transférer automatiquement un fichier du serveur au client ?
+
+C. Peut-on enregistrer le DDS original à la racine de la sauvegarde puis faire en sorte que FS25 le distribue comme ressource de sauvegarde ?
+
+D. Existe-t-il un système analogue utilisé par :
+- cartes ;
+- Precision Farming ;
+- fichiers GRLE ;
+- splitShapes ;
+- navigation ;
+- notes/screenshots ;
+- mods envoyant des données volumineuses ?
+
+E. Si aucune lecture du DDS n'est possible :
+peut-on modifier légèrement le workflow d'import pour demander un format source plus facile à lire,
+TOUT EN gardant une UX simple pour l'utilisateur ?
+
+Mais éviter de changer le format sans nécessité.
+L'objectif initial reste :
+"je dépose un DDS, je clique Importer, c'est terminé".
+
+============================================================
+12. SI UNE LECTURE DES DONNÉES DEVIENT POSSIBLE
+============================================================
+
+Architecture réseau recommandée :
+
+1. admin importe ;
+2. serveur valide que l'expéditeur est admin/master ;
+3. logo normalisé avec ID sécurisé ;
+4. taille limitée ;
+5. données divisées en chunks ;
+6. upload client -> serveur ;
+7. serveur vérifie checksum/taille ;
+8. serveur écrit le catalogue dans la sauvegarde ;
+9. serveur annonce le catalogue aux clients ;
+10. clients ne téléchargent que les logos manquants ;
+11. données reçues reconstruites dans :
+    modSettings/FS25_farmIconColor/cache/
+12. logo enregistré dans self.logos ;
+13. synchronisation du logoName continue avec le système existant.
+
+Éviter de renvoyer 100 Ko de logo toutes les 5 secondes avec le sync périodique existant.
+
+Créer plutôt :
+- manifest/catalog event ;
+- begin event ;
+- chunk event ;
+- end event ;
+- éventuellement request event.
+
+Exemple :
+FarmIconColorCustomLogoManifestEvent
+FarmIconColorCustomLogoBeginEvent
+FarmIconColorCustomLogoChunkEvent
+FarmIconColorCustomLogoEndEvent
+FarmIconColorCustomLogoRequestEvent
+
+Utiliser des chunks raisonnables (par ex. 8-16 KiB) si le payload passe par streamWriteString.
+
+============================================================
+13. SÉCURITÉ / VALIDATION
+============================================================
+
+Pour un upload client -> serveur :
+
+Vérifier côté SERVEUR :
+- client autorisé / master/admin ;
+- taille max raisonnable ;
+- dimensions 256x256 si possible ;
+- ID nettoyé ;
+- extension autorisée ;
+- pas de ../ ;
+- nombre maximum de logos ;
+- nombre maximum de chunks ;
+- ordre de chunks ;
+- checksum avant écriture finale.
+
+Ne jamais laisser le client choisir un chemin de fichier arbitraire sur le serveur.
+
+============================================================
+14. FUTURE INTERFACE DE SÉLECTION DES LOGOS
+============================================================
+
+APRÈS la synchro serveur.
+
+UX décidée :
+
+Dans la fenêtre de création/modification de ferme :
+- bouton "Sélectionner logo" ;
+- ouvre une fenêtre dédiée ;
+- toutes les miniatures visibles ;
+- 4 logos par ligne environ ;
+- scroll vertical à la molette ;
+- une seule page ;
+- pas de pagination ;
+- clic sur un logo ;
+- sélection visible ;
+- Confirmer / Entrée ;
+- fermeture ;
+- logo appliqué.
+
+Les flèches gauche/droite peuvent rester comme fallback mais ne doivent plus être la méthode principale.
+
+============================================================
+15. DÉTECTION LOGO BLANC / LOGO COULEUR — FUTUR
+============================================================
+
+Autre amélioration prévue :
+
+- logo blanc / monochrome :
+  appliquer la couleur de ferme ;
+
+- logo déjà coloré :
+  conserver ses couleurs d'origine.
+
+Pas encore implémenté proprement.
+
+============================================================
+16. ÉTAT DU PROJET EN UNE PHRASE
+============================================================
+
+Le mod fonctionne déjà très bien pour importer et utiliser localement des logos DDS personnalisés.
+
+Le seul gros blocage actuel est :
+COMMENT transformer le DDS importé en données persistables/transférables par le serveur afin que les autres joueurs n'aient jamais besoin de posséder manuellement le fichier.
+
+Toutes les tentatives via BitVectorMap ont montré que GIANTS accepte le DDS comme ressource, mais que getBitVectorMapPoint() ne donne ni les pixels RGBA simples ni le flux BC3/DXT5 brut.
+
+============================================================
+17. CONSIGNES POUR REPRENDRE
+============================================================
+
+Merci de commencer par :
+
+1. ouvrir le ZIP actuel ;
+2. lire intégralement scripts/farmIconColor.lua ;
+3. identifier et isoler le bloc DDS-ROUNDTRIP ;
+4. ne pas modifier les fonctions UI/import validées ;
+5. analyser les APIs GIANTS/network disponibles ;
+6. proposer l'architecture la plus fiable AVANT de refaire des tests destructifs ;
+7. si un test runtime est nécessaire, le rendre :
+   - court ;
+   - ciblé ;
+   - sans crash natif connu ;
+   - clairement identifiable dans log.txt ;
+8. fournir à chaque modification un ZIP FS25 complet avec modDesc.xml à la racine.
+
+Le fichier final attendu doit toujours s'appeler :
+FS25_farmIconColor.zip
+
+============================================================
+18. RÉSUMÉ DES ÉCHECS À NE PAS REFAIRE
+============================================================
+
+NE PAS supposer que :
+- io.open("rb") donne les octets du DDS ;
+- createFile(FileAccess.READ) fonctionne parce que la fonction existe ;
+- BitVectorMap 32 bits = RGBA ;
+- canal 0/8/16/24 = R/G/B/A ;
+- BitVectorMap 8 bits = alpha ;
+- 65536 valeurs = 65536 octets BC3 ;
+- readBitVectorMapFromStream() est sûr sur un stream mémoire arbitraire.
+
+Le test readBitVectorMapFromStream() a déjà provoqué un crash complet de FS25.
+
+============================================================
+FIN DE PASSATION
+============================================================
+
+But :
+obtenir une solution robuste et publiable, pas seulement un prototype local.
+
+Priorité immédiate :
+persistance + distribution automatique des logos personnalisés sur serveur dédié.
+
+Étape suivante après réussite :
+sélecteur visuel de logos avec grille et scroll.
