@@ -102,5 +102,7 @@ Eingaben:
 
     <extraSourceFiles>
         <sourceFile filename="scripts/farmIconColor.lua" />
+        <!-- BUILD DE TEST : retirer la ligne suivante (et scripts/dev/, dev/) avant publication -->
+        <sourceFile filename="scripts/dev/farmIconColorTests.lua" />
     </extraSourceFiles>
 </modDesc>

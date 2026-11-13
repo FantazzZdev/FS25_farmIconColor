@@ -29,6 +29,12 @@ jobs:
             exit 1
           fi
 
+      - name: Test build warning
+        run: |
+          if grep -q 'scripts/dev/' mod/modDesc.xml; then
+            echo "::warning::Build de TEST (scripts/dev charge) - ne pas publier sur ModHub"
+          fi
+
       - name: Build ZIP
         run: ./tools/build.sh
 
