@@ -31,6 +31,9 @@ LS.MAX_NAME_LENGTH = 48
 LS.SEND_INTERVAL = 50               -- ms between two send batches
 LS.CHUNKS_PER_SEND = 2
 LS.HELLO_DELAY = 2000               -- ms after joining before asking the manifest
+LS.deletedPackages = {}
+LS.deletedLocalLogos = {}
+LS.catalogById = {}
 
 -- ------------------------------------------------------------- utilities ---
 
@@ -179,6 +182,8 @@ function LS:loadMap()
     self.helloTimer = 0
     self.helloSent = false
     self.pendingPackageFiles = nil
+    self.catalogHadEntries = false
+    self:loadDeletedList()
 
     if FarmIconColor:isAuthoritativeInstance() then
         FarmIconColor:safeCall("load shared logo catalog", function()
@@ -251,6 +256,47 @@ function LS:registerLogo(entry, path)
     fic.farmMenuLogoApplyLogged = false
     fic.farmDialogCustomLogoApplyLogged = false
     fic.lastDialogLogoColorSignature = nil
+
+    self:notifyLogosChanged()
+end
+
+function LS:notifyLogosChanged()
+    if FarmIconColorLogoPicker ~= nil and FarmIconColorLogoPicker.onLogosChanged ~= nil then
+        FarmIconColor:safeCall("refresh logo picker", function()
+            FarmIconColorLogoPicker:onLogosChanged()
+        end)
+    end
+end
+
+-- Removes a logo from every list of FarmIconColor (menus fall back to the default logo).
+function LS:unregisterLogo(id)
+    local fic = FarmIconColor
+
+    fic.logos[id] = nil
+
+    if fic.customLogoPaths ~= nil then
+        fic.customLogoPaths[id] = nil
+    end
+
+    if fic.customLogoDisplayNames ~= nil then
+        fic.customLogoDisplayNames[id] = nil
+    end
+
+    for index = #(fic.logoOrder or {}), 1, -1 do
+        if fic.logoOrder[index] == id then
+            table.remove(fic.logoOrder, index)
+        end
+    end
+
+    if fic.pendingFarmCreationLogoName == id then
+        fic.pendingFarmCreationLogoName = nil
+    end
+
+    fic.farmMenuLogoApplyLogged = false
+    fic.farmDialogCustomLogoApplyLogged = false
+    fic.lastDialogLogoColorSignature = nil
+
+    self:notifyLogosChanged()
 end
 
 -- Makes sure the DDS exists in the local cache, then registers it.
@@ -304,6 +350,7 @@ function LS:addToCatalog(entry, decoded)
     end
 
     self.catalogById[entry.id] = entry
+    self.catalogHadEntries = true
     FarmIconColor:saveSavegameData("shared logo catalog")
 
     if g_server ~= nil and FarmIconColor:isMultiplayerGame() then
@@ -352,6 +399,7 @@ function LS:loadCatalogFromSavegame()
             and self.catalogById[entry.id] == nil and self:materializeEntry(entry, nil) then
             table.insert(self.catalog, entry)
             self.catalogById[entry.id] = entry
+            self.catalogHadEntries = true
         end
 
         index = index + 1
@@ -361,7 +409,12 @@ function LS:loadCatalogFromSavegame()
 end
 
 function LS:onGameSaved(missionInfo)
-    if self.catalog == nil or #self.catalog == 0 or not FarmIconColor:isAuthoritativeInstance() then
+    if self.catalog == nil or not FarmIconColor:isAuthoritativeInstance() then
+        return
+    end
+
+    -- An empty catalog is still written when logos were deleted, so they do not come back.
+    if #self.catalog == 0 and not self.catalogHadEntries then
         return
     end
 
@@ -426,6 +479,12 @@ function LS:readPackage(path, filename)
         return nil, "known"
     end
 
+    -- Deleted earlier from the logo picker: ignored until the file is replaced.
+    if adler ~= nil and self.deletedPackages[tostring(adler)] then
+        delete(xmlFile)
+        return nil, "deleted"
+    end
+
     local data = self.cleanBase64(getXMLString(xmlFile, key .. ".data"))
     delete(xmlFile)
 
@@ -481,6 +540,8 @@ function LS:importPackagesFromFolder()
             self:publishEntry(entry, decodedOrError)
         elseif decodedOrError == "invalid" then
             self.notify("farmIconColor_logoInvalid", "Invalid logo file: %s", filename, true)
+        elseif decodedOrError == "deleted" then
+            self.notify("farmIconColor_logoIgnored", "Deleted logo ignored, remove the file: %s", filename, true)
         end
     end
 end
@@ -559,6 +620,23 @@ function LS:onManifest(entries)
     end
 
     local missing = {}
+    local stillShared = {}
+
+    for _, entry in ipairs(entries) do
+        local name = self.sanitizeName(entry.name)
+        local id = name ~= nil and (FarmIconColor:sanitizeCustomLogoId(name)) or nil
+        if id ~= nil then
+            stillShared[id] = true
+        end
+    end
+
+    -- Logos deleted by the admin since the last manifest.
+    for id, _ in pairs(self.catalogById) do
+        if not stillShared[id] then
+            self.catalogById[id] = nil
+            self:unregisterLogo(id)
+        end
+    end
 
     for _, entry in ipairs(entries) do
         -- The id is always derived from the name, never trusted as sent.
@@ -669,6 +747,218 @@ function LS:onChunk(connection, kind, event)
     end
 end
 
+-- ------------------------------------------------------------- deletion ---
+-- Deleted logos are remembered on the admin's PC (modSettings/FS25_farmIconColor/
+-- deletedLogos.xml) so that the next Import does not bring them back while the
+-- file is still in customLogos/. A new/modified file has another checksum and
+-- is imported normally.
+
+function LS:getDeletedListFilename()
+    local directory = FarmIconColor:getModSettingsSaveDirectory()
+    return directory ~= nil and FarmIconColor:joinPath(directory, "deletedLogos.xml") or nil
+end
+
+function LS:loadDeletedList()
+    self.deletedPackages = {}
+    self.deletedLocalLogos = {}
+
+    local filename = self:getDeletedListFilename()
+
+    if filename == nil or fileExists == nil or not fileExists(filename) then
+        return
+    end
+
+    local xmlFile = loadXMLFile("farmIconColorDeletedLogos", filename)
+
+    if xmlFile == nil or xmlFile == 0 then
+        return
+    end
+
+    local index = 0
+    while index < 1000 do
+        local key = string.format("deletedLogos.package(%d)", index)
+        if not hasXMLProperty(xmlFile, key) then
+            break
+        end
+        local adler = getXMLString(xmlFile, key .. "#adler32")
+        if adler ~= nil then
+            self.deletedPackages[adler] = true
+        end
+        index = index + 1
+    end
+
+    index = 0
+    while index < 1000 do
+        local key = string.format("deletedLogos.local(%d)", index)
+        if not hasXMLProperty(xmlFile, key) then
+            break
+        end
+        local id = getXMLString(xmlFile, key .. "#id")
+        if id ~= nil then
+            self.deletedLocalLogos[id] = true
+        end
+        index = index + 1
+    end
+
+    delete(xmlFile)
+end
+
+function LS:saveDeletedList()
+    local filename = self:getDeletedListFilename()
+
+    if filename == nil then
+        return
+    end
+
+    local xmlFile = createXMLFile("farmIconColorDeletedLogos", filename, "deletedLogos")
+
+    if xmlFile == nil or xmlFile == 0 then
+        return
+    end
+
+    local index = 0
+    for adler, _ in pairs(self.deletedPackages or {}) do
+        setXMLString(xmlFile, string.format("deletedLogos.package(%d)#adler32", index), adler)
+        index = index + 1
+    end
+
+    index = 0
+    for id, _ in pairs(self.deletedLocalLogos or {}) do
+        setXMLString(xmlFile, string.format("deletedLogos.local(%d)#id", index), id)
+        index = index + 1
+    end
+
+    saveXMLFile(xmlFile)
+    delete(xmlFile)
+end
+
+function LS:isLocalLogoDeleted(id)
+    return self.deletedLocalLogos ~= nil and self.deletedLocalLogos[id] == true
+end
+
+-- "shared" (server catalog), "local" (.dds only on this PC) or nil (built-in).
+function LS:getDeletableKind(id)
+    if id == nil then
+        return nil
+    end
+
+    if self.catalogById ~= nil and self.catalogById[id] ~= nil then
+        return "shared"
+    end
+
+    local fic = FarmIconColor
+    if fic.customLogoPaths ~= nil and fic.customLogoPaths[id] ~= nil then
+        return "local"
+    end
+
+    return nil
+end
+
+-- Admin action from the logo picker.
+function LS:deleteLogo(id)
+    local fic = FarmIconColor
+    local kind = self:getDeletableKind(id)
+
+    if kind == nil or not fic:isCurrentUserFarmIconAdmin() then
+        return false
+    end
+
+    local displayName = fic:getLogoDisplayName(id)
+
+    if kind == "local" then
+        self.deletedLocalLogos[id] = true
+        self:saveDeletedList()
+        self:resetFarmsUsingLogo(id)
+        self:unregisterLogo(id)
+    else
+        local entry = self.catalogById[id]
+
+        if entry.adler ~= nil then
+            self.deletedPackages[string.format("%d", entry.adler)] = true
+            self:saveDeletedList()
+        end
+
+        if g_server ~= nil then
+            self:removeFromCatalog(id)
+        else
+            local connection = g_client ~= nil and g_client:getServerConnection() or nil
+            if connection ~= nil then
+                connection:sendEvent(FarmIconColorLogoEvent.newDelete(id))
+            end
+        end
+    end
+
+    self.notify("farmIconColor_logoDeleted", "Logo deleted: %s", displayName, false)
+    return true
+end
+
+-- Server: farms that used the deleted logo get the default logo (synced to everyone).
+function LS:resetFarmsUsingLogo(id)
+    local fic = FarmIconColor
+
+    if not fic:isAuthoritativeInstance() or type(fic.runtimeFarmLogos) ~= "table" then
+        return
+    end
+
+    local farmIds = {}
+    for farmId, logoName in pairs(fic.runtimeFarmLogos) do
+        if logoName == id then
+            table.insert(farmIds, farmId)
+        end
+    end
+
+    for _, farmId in ipairs(farmIds) do
+        fic.runtimeFarmLogos[farmId] = nil
+        local fallback = nil
+
+        for _, logoName in ipairs(fic.logoOrder or {}) do
+            if logoName ~= id and fic.logos[logoName] ~= nil then
+                fallback = logoName
+                break
+            end
+        end
+
+        if fallback ~= nil then
+            fic:setRuntimeFarmLogo(tonumber(farmId) or farmId, fallback, "logo deleted")
+        else
+            fic:saveSavegameData("logo deleted")
+        end
+    end
+end
+
+-- Server/host: removes a shared logo and tells every client.
+function LS:removeFromCatalog(id)
+    if self.catalogById[id] == nil then
+        return false
+    end
+
+    for index = #self.catalog, 1, -1 do
+        if self.catalog[index].id == id then
+            table.remove(self.catalog, index)
+        end
+    end
+
+    self.catalogById[id] = nil
+    self:resetFarmsUsingLogo(id)
+    self:unregisterLogo(id)
+    FarmIconColor:saveSavegameData("shared logo deleted")
+
+    if g_server ~= nil and FarmIconColor:isMultiplayerGame() then
+        g_server:broadcastEvent(FarmIconColorLogoEvent.newManifest(self.catalog), nil, nil, nil)
+    end
+
+    return true
+end
+
+-- Server: delete request from a client (admin only).
+function LS:onDeleteRequest(connection, id)
+    if g_server == nil or self.catalog == nil or not self:isConnectionMasterUser(connection) then
+        return
+    end
+
+    self:removeFromCatalog(tostring(id or ""))
+end
+
 -- Hook on the existing admin import (INSERT / Import button): after the .dds
 -- scan, also share the .xml logo packages found in customLogos/.
 if FarmIconColor ~= nil and FarmIconColor.importCustomLogosFromFolder ~= nil then
@@ -706,6 +996,7 @@ FarmIconColorLogoEvent.KIND_MANIFEST = 2  -- server -> client : list of shared l
 FarmIconColorLogoEvent.KIND_REQUEST = 3   -- client -> server : send me these logos
 FarmIconColorLogoEvent.KIND_CHUNK = 4     -- server -> client : one piece of a logo
 FarmIconColorLogoEvent.KIND_UPLOAD = 5    -- admin client -> server : one piece of a logo
+FarmIconColorLogoEvent.KIND_DELETE = 6    -- admin client -> server : delete this shared logo
 
 function FarmIconColorLogoEvent.emptyNew()
     return Event.new(FarmIconColorLogoEvent_mt)
@@ -744,6 +1035,13 @@ function FarmIconColorLogoEvent.newRequest(ids)
         table.insert(self.ids, id)
     end
 
+    return self
+end
+
+function FarmIconColorLogoEvent.newDelete(id)
+    local self = FarmIconColorLogoEvent.emptyNew()
+    self.kind = FarmIconColorLogoEvent.KIND_DELETE
+    self.id = id
     return self
 end
 
@@ -793,6 +1091,8 @@ function FarmIconColorLogoEvent:readStream(streamId, connection)
         self.index = streamReadInt32(streamId)
         self.total = streamReadInt32(streamId)
         self.chunk = streamReadString(streamId)
+    elseif self.kind == FarmIconColorLogoEvent.KIND_DELETE then
+        self.id = streamReadString(streamId)
     end
 
     self:run(connection)
@@ -825,6 +1125,8 @@ function FarmIconColorLogoEvent:writeStream(streamId, connection)
         streamWriteInt32(streamId, self.index)
         streamWriteInt32(streamId, self.total)
         streamWriteString(streamId, self.chunk)
+    elseif self.kind == FarmIconColorLogoEvent.KIND_DELETE then
+        streamWriteString(streamId, tostring(self.id or ""))
     end
 end
 
@@ -842,6 +1144,8 @@ function FarmIconColorLogoEvent:run(connection)
             LS:onChunk(connection, self.kind, self)
         elseif self.kind == FarmIconColorLogoEvent.KIND_UPLOAD and fromClient then
             LS:onChunk(connection, self.kind, self)
+        elseif self.kind == FarmIconColorLogoEvent.KIND_DELETE and fromClient then
+            LS:onDeleteRequest(connection, self.id)
         end
     end)
 end

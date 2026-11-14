@@ -13,6 +13,9 @@ FarmIconColor.PROTOTYPE_LOGO_PREVIOUS_KEY_NAME = "NUMPAD 4"
 FarmIconColor.PROTOTYPE_LOGO_NEXT_KEY_NAME = "NUMPAD 6"
 FarmIconColor.CUSTOM_LOGO_IMPORT_KEY_NAME = "INSERT"
 FarmIconColor.CUSTOM_LOGO_IMPORT_ACTION_NAME = "FARMICONCOLOR_IMPORT_CUSTOM_LOGO"
+-- The Import button now lives in the logo picker dialog (scripts/logoPicker.lua);
+-- the farm dialog shows the "Logos" button in its place.
+FarmIconColor.FARM_DIALOG_IMPORT_BUTTON_ENABLED = false
 FarmIconColor.LOGO_SELECTOR_OVERLAY_ENABLED = false
 
 -- Release build: keep ModHub log.txt clean.
@@ -425,7 +428,7 @@ function FarmIconColor:ensureCustomLogoReadme(directory)
             "- Transparent background / alpha channel\n" ..
             "- BC3 / DXT5 compression\n" ..
             "- Mipmaps enabled\n\n" ..
-            "While the farm creation/edit menu is open, the administrator can press INSERT (Import) to rescan this folder.\n" ..
+            "In the farm creation/edit menu, the administrator opens Logos (L) and presses Import (INSERT) to rescan this folder.\n" ..
             "Custom logos are loaded after the logos included with the mod.\n"
 
         fileWrite(fileId, content)
@@ -574,6 +577,12 @@ function FarmIconColor:registerCustomLogoFile(filename)
     local logoId, displayName = self:sanitizeCustomLogoId(fileText)
 
     if logoId == nil then
+        return false
+    end
+
+    -- Deleted from the logo picker: ignored until the file is replaced/renamed.
+    if FarmIconColorLogoSync ~= nil and FarmIconColorLogoSync.isLocalLogoDeleted ~= nil
+        and FarmIconColorLogoSync:isLocalLogoDeleted(logoId) then
         return false
     end
 
@@ -4720,6 +4729,10 @@ function FarmIconColor:getInsertKeyCode()
 end
 
 function FarmIconColor:checkCustomLogoImportHotkey()
+    if self.FARM_DIALOG_IMPORT_BUTTON_ENABLED ~= true then
+        return
+    end
+
     local insertKey = self:getInsertKeyCode()
     local canImport = self:hasVisibleFarmEditDialog()
         and g_gui ~= nil
@@ -4945,6 +4958,10 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
 end
 
 function FarmIconColor:ensureActiveFarmDialogImportButton()
+    if self.FARM_DIALOG_IMPORT_BUTTON_ENABLED ~= true then
+        return
+    end
+
     if g_gui == nil or type(g_gui.dialogs) ~= "table" then
         return
     end

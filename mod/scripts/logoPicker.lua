@@ -15,6 +15,7 @@ local P = FarmIconColorLogoPicker
 
 P.DIALOG_NAME = "FarmIconColorLogoPickerDialog"
 P.ACTION_NAME = "FARMICONCOLOR_OPEN_LOGO_PICKER"
+P.DELETE_ACTION_NAME = "FARMICONCOLOR_DELETE_LOGO"
 P.MOD_DIRECTORY = g_currentModDirectory or ""
 
 -- ================================================================ dialog ===
@@ -41,6 +42,14 @@ function D:onCreate()
         self.logoList:setDataSource(self)
         self.logoList:setDelegate(self)
     end
+
+    -- Show the mod keys (INSERT / DELETE) on the native buttons.
+    for button, action in pairs({[self.importButton or false] = FarmIconColor.CUSTOM_LOGO_IMPORT_ACTION_NAME,
+                                 [self.deleteButton or false] = P.DELETE_ACTION_NAME}) do
+        if button and button.setInputAction ~= nil then
+            pcall(button.setInputAction, button, action)
+        end
+    end
 end
 
 -- Called by P.open() before showDialog.
@@ -53,13 +62,31 @@ end
 function D:onOpen()
     D:superClass().onOpen(self)
 
+    self.deleteArmedLogo = nil
+    self:updateAdminButtons()
+
     if self.logoList == nil then
         return
     end
 
+    self:reloadAndSelect(self.selectedIndex)
+
+    if FocusManager ~= nil and FocusManager.setFocus ~= nil then
+        pcall(function()
+            FocusManager:setFocus(self.logoList)
+        end)
+    end
+end
+
+function D:reloadAndSelect(index)
     self.logoList:reloadData()
 
-    local index = self.selectedIndex
+    if #self.logos == 0 then
+        return
+    end
+
+    index = math.max(1, math.min(#self.logos, index or 1))
+    self.selectedIndex = index
     pcall(function()
         if self.logoList.setSelectedItem ~= nil then
             self.logoList:setSelectedItem(1, index, true, true)
@@ -68,11 +95,97 @@ function D:onOpen()
         end
     end)
 
-    if FocusManager ~= nil and FocusManager.setFocus ~= nil then
-        pcall(function()
-            FocusManager:setFocus(self.logoList)
-        end)
+    self:updateDeleteButton()
+end
+
+-- Import / Delete are admin only (they are hidden for other players).
+function D:updateAdminButtons()
+    local isAdmin = FarmIconColor:isCurrentUserFarmIconAdmin()
+
+    for _, element in ipairs({self.importButton, self.importSeparator, self.deleteButton, self.deleteSeparator}) do
+        if element ~= nil and element.setVisible ~= nil then
+            element:setVisible(isAdmin)
+        end
     end
+
+    if self.buttonBox ~= nil and self.buttonBox.invalidateLayout ~= nil then
+        self.buttonBox:invalidateLayout()
+    end
+end
+
+-- Delete is only enabled on custom logos; the first press asks for confirmation.
+function D:updateDeleteButton()
+    if self.deleteButton == nil then
+        return
+    end
+
+    local logoName = self.logos[self.selectedIndex]
+    local deletable = FarmIconColorLogoSync ~= nil and FarmIconColorLogoSync:getDeletableKind(logoName) ~= nil
+
+    if self.deleteArmedLogo ~= logoName then
+        self.deleteArmedLogo = nil
+    end
+
+    local text = self.deleteArmedLogo ~= nil
+        and FarmIconColor:getTranslatedText("farmIconColor_pickerDeleteConfirm", "Confirm delete")
+        or FarmIconColor:getTranslatedText("input_" .. P.DELETE_ACTION_NAME, "Delete")
+
+    if self.deleteButton.setText ~= nil then
+        self.deleteButton:setText(text)
+    end
+
+    if self.deleteButton.setDisabled ~= nil then
+        self.deleteButton:setDisabled(not deletable)
+    end
+
+    if self.buttonBox ~= nil and self.buttonBox.invalidateLayout ~= nil then
+        self.buttonBox:invalidateLayout()
+    end
+end
+
+-- Rebuilds the list (after an import, a deletion, or a logo received from the server).
+function D:refresh()
+    local current = self.logos[self.selectedIndex]
+    local logos, selectedIndex = P:collectLogos(current)
+
+    if current ~= nil and logos[selectedIndex] ~= current then
+        selectedIndex = math.min(self.selectedIndex, #logos)
+    end
+
+    self.logos = logos
+
+    if self.logoList ~= nil then
+        self:reloadAndSelect(selectedIndex)
+    end
+end
+
+function D:onClickImport()
+    if not FarmIconColor:isCurrentUserFarmIconAdmin() then
+        return false
+    end
+
+    FarmIconColor:importCustomLogosFromFolder()
+    self:refresh()
+    return false
+end
+
+function D:onClickDelete()
+    local logoName = self.logos[self.selectedIndex]
+
+    if logoName == nil or FarmIconColorLogoSync == nil or FarmIconColorLogoSync:getDeletableKind(logoName) == nil then
+        return false
+    end
+
+    if self.deleteArmedLogo ~= logoName then
+        self.deleteArmedLogo = logoName
+        self:updateDeleteButton()
+        return false
+    end
+
+    self.deleteArmedLogo = nil
+    FarmIconColorLogoSync:deleteLogo(logoName)
+    self:refresh()
+    return false
 end
 
 function D:getNumberOfItemsInSection(list, section)
@@ -132,6 +245,8 @@ function D:onListSelectionChanged(list, section, index)
     if index ~= nil and index > 0 then
         self.selectedIndex = index
     end
+
+    self:updateDeleteButton()
 end
 
 function D:getSelectedLogo()
@@ -233,18 +348,12 @@ function P:getFarmDisplayColor()
     return fic:toGuiDisplayColor(color or {1, 1, 1, 1}) or {1, 1, 1, 1}
 end
 
-function P:open()
+function P:collectLogos(current)
     local fic = FarmIconColor
-
-    if self:isDialogOpen() or not self:loadDialog() then
-        return false
-    end
+    local logos = {}
+    local selectedIndex = 1
 
     fic:ensureSelectableLogos()
-
-    local logos = {}
-    local current = fic:getActiveFarmDialogLogoName()
-    local selectedIndex = 1
 
     for _, logoName in ipairs(fic.logoOrder or {}) do
         if fic.logos[logoName] ~= nil then
@@ -255,6 +364,25 @@ function P:open()
             end
         end
     end
+
+    return logos, selectedIndex
+end
+
+-- Called by FarmIconColorLogoSync when logos are added or removed.
+function P:onLogosChanged()
+    if self:isDialogOpen() and self.dialog ~= nil then
+        self.dialog:refresh()
+    end
+end
+
+function P:open()
+    local fic = FarmIconColor
+
+    if self:isDialogOpen() or not self:loadDialog() then
+        return false
+    end
+
+    local logos, selectedIndex = self:collectLogos(fic:getActiveFarmDialogLogoName())
 
     if #logos == 0 then
         return false
@@ -282,40 +410,6 @@ function P:getVisibleFarmDialog()
     end
 
     return nil
-end
-
--- Places the "Logos" button left of its anchor, a bit narrower than the native
--- buttons so that it stays inside the dialog footer.
-function P:positionFooterButton(button, anchor)
-    if type(anchor.position) ~= "table" or type(anchor.size) ~= "table" then
-        return
-    end
-
-    local anchorWidth = tonumber(anchor.size[1]) or 0.1
-    local height = tonumber(anchor.size[2])
-    local width = anchorWidth * 0.62
-    local x = (tonumber(anchor.position[1]) or 0) - width - 0.004
-    local y = tonumber(anchor.position[2]) or 0
-
-    button.layoutIgnore = true
-
-    if button.setSize ~= nil and height ~= nil then
-        pcall(function()
-            button:setSize(width, height)
-        end)
-    end
-
-    if button.setPosition ~= nil then
-        pcall(function()
-            button:setPosition(x, y)
-        end)
-    end
-
-    if button.updateAbsolutePosition ~= nil then
-        pcall(function()
-            button:updateAbsolutePosition()
-        end)
-    end
 end
 
 -- "Logos" footer button, cloned from the Color button like the Import button.
@@ -368,15 +462,8 @@ function P:ensureFooterButton(dialog)
         end
     end
 
-    -- Left of the Import button when it is shown (admin), else left of Color.
-    local anchor = colorButton
-    local importButton = colorButton.farmIconColorImportButtonElement
-
-    if type(importButton) == "table" and importButton.visible ~= false then
-        anchor = importButton
-    end
-
-    self:positionFooterButton(button, anchor)
+    -- Same place and size as the former Import button: left of Color.
+    fic:positionFarmDialogImportButton(button, colorButton)
     fic:ensureFarmDialogImportButtonMouseRegistration(button)
     fic:showGuiElementWithParents(button)
 
@@ -425,6 +512,33 @@ function P:hookFarmDialogMouse(dialog)
     end
 end
 
+-- INSERT / DELETE inside the dialog (mod actions are not menu actions, so the
+-- native buttons only display their key; the key itself is read here).
+function P:pollDialogKeys()
+    if Input == nil or Input.isKeyPressed == nil or self.dialog == nil
+        or not FarmIconColor:isCurrentUserFarmIconAdmin() then
+        return
+    end
+
+    self.dialogKeyStates = self.dialogKeyStates or {}
+
+    for keyCode, callback in pairs({
+        [Input.KEY_insert or false] = function() self.dialog:onClickImport() end,
+        [Input.KEY_delete or false] = function() self.dialog:onClickDelete() end
+    }) do
+        if keyCode then
+            local ok, pressed = pcall(Input.isKeyPressed, keyCode)
+            pressed = ok and pressed == true
+
+            if pressed and not self.dialogKeyStates[keyCode] then
+                FarmIconColor:safeCall("logo picker key", callback)
+            end
+
+            self.dialogKeyStates[keyCode] = pressed
+        end
+    end
+end
+
 -- -------------------------------------------------- mod listener callbacks ---
 -- (only loadMap / deleteMap / update: names like mouseEvent or draw would be
 -- called by the game for every mod listener)
@@ -448,8 +562,11 @@ function P:update(dt)
 
     if self:isDialogOpen() then
         self.openKeyDown = true -- L must be released before it can reopen
+        self:pollDialogKeys()
         return
     end
+
+    self.dialogKeyStates = {}
 
     if fic.applyToFarmMenuLogo ~= true or not fic:hasVisibleFarmEditDialog() then
         self.openKeyDown = false

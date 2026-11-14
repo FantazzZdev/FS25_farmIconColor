@@ -48,7 +48,7 @@ Chaque push sur GitHub construit aussi le ZIP automatiquement (onglet **Actions*
 
 1. Ouvrir le convertisseur en ligne : **https://fantazzzdev.github.io/FS25_farmIconColor/** (ou hors ligne : `dist/convertisseur-logos.html` apres un build), y deposer une image (PNG, JPG, SVG, DDS) et telecharger le `.xml`.
 2. Placer le `.xml` dans `Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/`.
-3. En jeu, en tant qu'admin, dans la fenetre de modification de ferme : **INSER** ou bouton **Importer**.
+3. En jeu, en tant qu'admin, dans la fenetre de modification de ferme : **Logos** (L), puis **Importer** (INSER). Un logo qui ne convient pas se retire avec **Supprimer** (SUPPR, deux appuis).
 
 Le logo est envoye au serveur, enregistre dans la sauvegarde et transmis a tous les joueurs. Un simple `.dds` depose dans le meme dossier reste utilisable, mais uniquement sur ton PC.
 Details techniques : `docs/ARCHITECTURE-logos-serveur.md`.

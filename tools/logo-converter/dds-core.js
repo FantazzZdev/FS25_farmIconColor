@@ -232,7 +232,7 @@
     return '<?xml version="1.0" encoding="utf-8" standalone="no"?>\n' +
       "<!-- Farm Icon Color logo package: put this file in\n" +
       "     Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/\n" +
-      "     then press Import (INSERT) in the farm edit dialog. -->\n" +
+      "     then open Logos in the farm edit dialog and press Import (INSERT). -->\n" +
       '<farmIconColorLogo version="1">\n' +
       '    <logo name="' + xmlEscape(name) + '" format="dds" bytes="' + ddsBytes.length +
       '" adler32="' + adler32(ddsBytes) + '" tintable="' + (tintable ? "true" : "false") + '">\n' +

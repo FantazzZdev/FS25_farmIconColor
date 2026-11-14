@@ -20,12 +20,12 @@ Features:
 - Display the custom icon in the farm creation and editing menu.
 - Display farm colors on the map.
 - Improve visual farm identification in singleplayer and multiplayer.
-- Custom logos: create a logo with the Farm Icon Color logo converter, put the .xml file in modSettings/FS25_farmIconColor/customLogos/ and press Import (admin). The logo is saved in the savegame and sent automatically to every player of the server.
+- Custom logos: create a logo with the Farm Icon Color logo converter, put the .xml file in modSettings/FS25_farmIconColor/customLogos/, open Logos and press Import (admin). The logo is saved in the savegame and sent automatically to every player of the server.
 
 Inputs:
 - In singleplayer: press F9 to open the farm color customization window.
 - In the farm creation or editing menu: click Logos (L) or the logo itself to pick a logo from a grid; the left/right arrows still work.
-- In the farm creation or editing menu (admin): press INSERT or click Import to import custom logos.]]>
+- In the logo window (admin): Import (INSERT) adds the custom logos of the customLogos folder, Delete (DEL) removes a custom logo.]]>
         </en>
         <fr>
             <![CDATA[Icônes De Fermes Personnalisées permet de donner une vraie identité visuelle à chaque ferme dans Farming Simulator 25.
@@ -40,12 +40,12 @@ Fonctionnalités :
 - Affichage du logo personnalisé dans le menu de création et de modification de ferme.
 - Affichage des couleurs de ferme sur la carte.
 - Meilleure identification visuelle des fermes en solo et en multijoueur.
-- Logos personnalisés : créez un logo avec le convertisseur Farm Icon Color, placez le fichier .xml dans modSettings/FS25_farmIconColor/customLogos/ puis appuyez sur Importer (admin). Le logo est enregistré dans la sauvegarde et envoyé automatiquement à tous les joueurs du serveur.
+- Logos personnalisés : créez un logo avec le convertisseur Farm Icon Color, placez le fichier .xml dans modSettings/FS25_farmIconColor/customLogos/, ouvrez Logos puis appuyez sur Importer (admin). Le logo est enregistré dans la sauvegarde et envoyé automatiquement à tous les joueurs du serveur.
 
 Entrées :
 - En solo : appuyez sur F9 pour ouvrir la fenêtre de personnalisation de la couleur de ferme.
 - Dans le menu de création ou de modification de ferme : cliquez sur Logos (L) ou sur le logo pour le choisir dans une grille ; les flèches gauche/droite fonctionnent toujours.
-- Dans le menu de création ou de modification de ferme (admin) : appuyez sur INSER ou cliquez sur Importer pour importer des logos personnalisés.]]>
+- Dans la fenêtre des logos (admin) : Importer (INSER) ajoute les logos du dossier customLogos, Supprimer (SUPPR) retire un logo personnalisé.]]>
         </fr>
         <de>
             <![CDATA[Bauernhof-Symbolfarbe ermoeglicht es, jedem Hof in Farming Simulator 25 eine klare visuelle Identitaet zu geben.
@@ -60,12 +60,12 @@ Funktionen:
 - Anzeige des individuellen Symbols im Menue zum Erstellen und Bearbeiten eines Hofes.
 - Anzeige der Hoffarben auf der Karte.
 - Bessere visuelle Erkennung von Hoefen im Einzelspieler- und Mehrspieler-Modus.
-- Eigene Logos: Logo mit dem Farm Icon Color Logo-Konverter erstellen, die .xml-Datei in modSettings/FS25_farmIconColor/customLogos/ ablegen und Importieren druecken (Admin). Das Logo wird im Spielstand gespeichert und automatisch an alle Spieler des Servers gesendet.
+- Eigene Logos: Logo mit dem Farm Icon Color Logo-Konverter erstellen, die .xml-Datei in modSettings/FS25_farmIconColor/customLogos/ ablegen, Logos oeffnen und Importieren druecken (Admin). Das Logo wird im Spielstand gespeichert und automatisch an alle Spieler des Servers gesendet.
 
 Eingaben:
 - Im Einzelspieler-Modus: Druecke F9, um das Fenster zur Anpassung der Hoffarbe zu oeffnen.
 - Im Menue zum Erstellen oder Bearbeiten eines Hofes: Klicke auf Logos (L) oder auf das Logo, um es aus einem Raster auszuwaehlen; die Pfeile links/rechts funktionieren weiterhin.
-- Im Menue zum Erstellen oder Bearbeiten eines Hofes (Admin): Druecke EINFG oder klicke auf Importieren, um eigene Logos zu importieren.]]>
+- Im Logo-Fenster (Admin): Importieren (EINFG) fuegt die Logos aus dem Ordner customLogos hinzu, Loeschen (ENTF) entfernt ein eigenes Logo.]]>
         </de>
     </description>
 
@@ -275,6 +275,26 @@ Eingaben:
             <fr>Lait</fr>
             <de>Milch</de>
         </text>
+        <text name="input_FARMICONCOLOR_DELETE_LOGO">
+            <en>Delete</en>
+            <fr>Supprimer</fr>
+            <de>Löschen</de>
+        </text>
+        <text name="farmIconColor_pickerDeleteConfirm">
+            <en>Confirm delete</en>
+            <fr>Confirmer la suppression</fr>
+            <de>Löschen bestätigen</de>
+        </text>
+        <text name="farmIconColor_logoDeleted">
+            <en>Logo deleted: %s</en>
+            <fr>Logo supprimé : %s</fr>
+            <de>Logo gelöscht: %s</de>
+        </text>
+        <text name="farmIconColor_logoIgnored">
+            <en>Deleted logo ignored, remove or replace the file: %s</en>
+            <fr>Logo supprimé ignoré, retirez ou remplacez le fichier : %s</fr>
+            <de>Gelöschtes Logo ignoriert, Datei entfernen oder ersetzen: %s</de>
+        </text>
         <text name="input_FARMICONCOLOR_OPEN_LOGO_PICKER">
             <en>Logos</en>
             <fr>Logos</fr>
@@ -301,6 +321,7 @@ Eingaben:
         <action name="FARMICONCOLOR_OPEN_SOLO_PICKER" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
         <action name="FARMICONCOLOR_IMPORT_CUSTOM_LOGO" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
         <action name="FARMICONCOLOR_OPEN_LOGO_PICKER" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
+        <action name="FARMICONCOLOR_DELETE_LOGO" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
     </actions>
 
     <inputBinding>
@@ -312,6 +333,9 @@ Eingaben:
         </actionBinding>
         <actionBinding action="FARMICONCOLOR_OPEN_LOGO_PICKER">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_l" />
+        </actionBinding>
+        <actionBinding action="FARMICONCOLOR_DELETE_LOGO">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_delete" />
         </actionBinding>
     </inputBinding>
 

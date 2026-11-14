@@ -31,8 +31,12 @@
                 </ThreePartBitmap>
             </BoxLayout>
 
-            <BoxLayout profile="ficPicker_buttonBox">
+            <BoxLayout profile="ficPicker_buttonBox" id="buttonBox">
                 <Button profile="buttonOK" text="$l10n_farmIconColor_pickerConfirm" onClick="onClickOk"/>
+                <Bitmap profile="fs25_dialogButtonBoxSeparator" id="importSeparator"/>
+                <Button profile="buttonActivate" id="importButton" text="$l10n_input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO" onClick="onClickImport"/>
+                <Bitmap profile="fs25_dialogButtonBoxSeparator" id="deleteSeparator"/>
+                <Button profile="buttonActivate" id="deleteButton" text="$l10n_input_FARMICONCOLOR_DELETE_LOGO" onClick="onClickDelete"/>
                 <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
                 <Button profile="buttonBack" text="$l10n_button_back" onClick="onClickBack"/>
             </BoxLayout>
