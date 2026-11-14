@@ -4826,8 +4826,8 @@ function FarmIconColor:hookFarmDialogImportMouseClick(dialog, importButton)
     dialog.mouseEvent = function(guiSelf, posX, posY, isDown, isUp, button, eventUsed)
         local activeButton = guiSelf.farmIconColorImportButtonElement
 
-        -- The logo picker (scripts/logoPicker.lua) owns the mouse while it is open.
-        if FarmIconColorLogoPicker ~= nil and FarmIconColorLogoPicker.isOpen == true then
+        -- The logo picker dialog (scripts/logoPicker.lua) owns the mouse while it is open.
+        if FarmIconColorLogoPicker ~= nil and FarmIconColorLogoPicker.isDialogOpen ~= nil and FarmIconColorLogoPicker:isDialogOpen() then
             return guiSelf.farmIconColorOriginalMouseEvent(guiSelf, posX, posY, isDown, isUp, button, eventUsed)
         end
 

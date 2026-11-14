@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    Farm Icon Color - logo picker dialog.
+    Built only from native FS25 profiles (same structure as the base game
+    dialogs): dialog background, title, line separator, SmoothList grid with
+    slider, and the native button box (Enter = confirm, Esc = back).
+-->
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg"/>
+    <GuiElement profile="fs25_dialogBg" size="900px 760px">
+        <ThreePartBitmap profile="fs25_dialogBgMiddleSmall"/>
+        <ThreePartBitmap profile="fs25_dialogBgTopSmall"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+
+        <BoxLayout profile="ficPicker_contentContainer">
+            <Text profile="ficPicker_title" text="$l10n_farmIconColor_pickerTitle"/>
+
+            <ThreePartBitmap profile="ficPicker_titleLineSeparator"/>
+
+            <BoxLayout absoluteSizeOffset="40px 130px" margin="0 0 0 10px">
+                <SmoothList id="logoList" profile="ficPicker_list" numLateralItems="4" listItemSpacing="10px" listItemLateralSpacing="10px" onDoubleClick="onDoubleClickLogo">
+                    <ListItem profile="ficPicker_cell">
+                        <Bitmap name="icon" profile="ficPicker_cellIcon"/>
+                        <Text name="title" profile="ficPicker_cellTitle"/>
+                    </ListItem>
+                </SmoothList>
+
+                <ThreePartBitmap profile="ficPicker_listSliderBox">
+                    <Slider profile="ficPicker_listSlider" dataElementId="logoList"/>
+                </ThreePartBitmap>
+            </BoxLayout>
+
+            <BoxLayout profile="ficPicker_buttonBox">
+                <Button profile="buttonOK" text="$l10n_farmIconColor_pickerConfirm" onClick="onClickOk"/>
+                <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                <Button profile="buttonBack" text="$l10n_button_back" onClick="onClickBack"/>
+            </BoxLayout>
+        </BoxLayout>
+    </GuiElement>
+</GUI>

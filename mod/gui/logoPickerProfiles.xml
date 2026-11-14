@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!-- Farm Icon Color - profiles of the logo picker. Every profile extends a native FS25 profile. -->
+<GUIProfiles>
+    <Profile name="ficPicker_contentContainer" extends="fs25_dialogContentContainer">
+        <flowDirection value="vertical"/>
+        <elementSpacing value="10px"/>
+        <alignmentX value="center"/>
+        <position value="4px -10px"/>
+        <absoluteSizeOffset value="21px 30px"/>
+    </Profile>
+
+    <Profile name="ficPicker_title" extends="baseReference" with="anchorTopStretchingX">
+        <textBold value="true"/>
+        <textLayoutMode value="resize"/>
+        <textMaxNumLines value="1"/>
+        <textSize value="24px"/>
+        <textUpperCase value="true"/>
+        <size value="100% 40px"/>
+    </Profile>
+
+    <Profile name="ficPicker_titleLineSeparator" extends="fs25_lineSeparatorTop">
+        <absoluteSizeOffset value="100px 0"/>
+    </Profile>
+
+    <Profile name="ficPicker_list" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+        <absoluteSizeOffset value="40px 0px"/>
+    </Profile>
+
+    <!-- One grid cell: grey tile, main highlight colour when selected (like native list items). -->
+    <Profile name="ficPicker_cell" extends="baseReference" with="anchorTopLeft">
+        <size value="190px 190px"/>
+        <imageColor value="$preset_fs25_colorGreyDark_50"/>
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+    </Profile>
+
+    <Profile name="ficPicker_cellIcon" extends="baseReference" with="anchorTopCenter">
+        <size value="130px 130px"/>
+        <position value="0px -14px"/>
+        <imageSliceId value="noSlice"/>
+        <imageColor value="1 1 1 1"/>
+        <imageSelectedColor value="1 1 1 1"/>
+        <imageFocusedColor value="1 1 1 1"/>
+        <imageHighlightedColor value="1 1 1 1"/>
+    </Profile>
+
+    <Profile name="ficPicker_cellTitle" extends="fs25_textDarkHighlight" with="anchorBottomStretchingX">
+        <size value="100% 34px"/>
+        <position value="0px 4px"/>
+        <textSize value="15px"/>
+        <textBold value="true"/>
+        <textAlignment value="center"/>
+        <textVerticalAlignment value="middle"/>
+        <textMaxNumLines value="1"/>
+        <textLayoutMode value="resize"/>
+        <textOffset value="0px 0px"/>
+    </Profile>
+
+    <Profile name="ficPicker_listSliderBox" extends="fs25_listSliderBox" with="anchorTopRight"/>
+    <Profile name="ficPicker_listSlider" extends="fs25_listSlider"/>
+
+    <Profile name="ficPicker_buttonBox" extends="fs25_dialogButtonBox">
+        <absoluteSizeOffset value="0px 0px"/>
+        <position value="0px 0px"/>
+    </Profile>
+</GUIProfiles>

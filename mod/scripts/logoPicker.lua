@@ -1,168 +1,223 @@
 -- ============================================================================
--- FS25_farmIconColor - Visual logo picker (grid of thumbnails)
+-- FS25_farmIconColor - Logo picker (native FS25 dialog)
 -- ============================================================================
--- Opened from the farm create/edit dialog:
+-- gui/logoPickerDialog.xml + gui/logoPickerProfiles.xml: a real FS25 dialog
+-- built from native profiles (same look as the game's dialogs). It opens on
+-- top of the farm create/edit dialog, like the game's colour picker:
 --   - "Logos" footer button (key L), or a click on the big logo preview.
--- One long page, 4 logos per row, mouse wheel / arrows to scroll, click to
--- select, double-click / Enter / "Confirm" to apply, Esc / "Cancel" to close.
---
--- Drawn on top of the farm dialog by wrapping that dialog's draw(), so no GUI
--- XML/profile is needed. While open, the dialog's mouse and menu input are
--- consumed by the picker. The left/right arrows of the dialog keep working.
+--   - Grid of 4 logos per row (native SmoothList), mouse wheel + slider.
+--   - Click = select, double-click / Enter (Confirm) = apply, Esc (Back) = close.
+-- The left/right arrows of the farm dialog keep working.
 -- ============================================================================
 
 FarmIconColorLogoPicker = {}
 local P = FarmIconColorLogoPicker
 
+P.DIALOG_NAME = "FarmIconColorLogoPickerDialog"
 P.ACTION_NAME = "FARMICONCOLOR_OPEN_LOGO_PICKER"
-P.COLUMNS = 4
-P.PANEL_W = 0.40
-P.PANEL_H = 0.72
-P.HEADER_H = 0.065
-P.FOOTER_H = 0.075
-P.PAD_X = 0.014
-P.SCROLLBAR_W = 0.005
-P.LABEL_H = 0.026
-P.ROW_GAP = 0.008
-P.TEXT_SIZE = 0.0125
-P.TITLE_SIZE = 0.020
-P.BUTTON_W = 0.085
-P.BUTTON_H = 0.040
-P.DOUBLE_CLICK_MS = 400
-P.ACCENT = {0.56, 0.78, 0.10, 1}
+P.MOD_DIRECTORY = g_currentModDirectory or ""
 
--- ----------------------------------------------------------------- helpers ---
+-- ================================================================ dialog ===
 
-local function inside(x, y, rx, ry, rw, rh)
-    return x >= rx and x <= rx + rw and y >= ry and y <= ry + rh
+FarmIconColorLogoPickerDialog = {}
+local D = FarmIconColorLogoPickerDialog
+local DialogBase = MessageDialog or DialogElement
+local D_mt = Class(D, DialogBase)
+
+function D.new(target, custom_mt)
+    local self = DialogBase.new(target, custom_mt or D_mt)
+    self.logos = {}
+    self.selectedIndex = 1
+    self.tint = {1, 1, 1, 1}
+    return self
 end
 
-local function rect(x, y, w, h, color)
-    drawFilledRect(x, y, w, h, color[1], color[2], color[3], color[4] or 1)
-end
-
-local function text(x, y, size, value, color, align, bold)
-    setTextAlignment(align or RenderText.ALIGN_LEFT)
-    setTextColor(color[1], color[2], color[3], color[4] or 1)
-    if setTextBold ~= nil then
-        setTextBold(bold == true)
+function D:onCreate()
+    if D:superClass().onCreate ~= nil then
+        D:superClass().onCreate(self)
     end
-    renderText(x, y, size, value)
-    if setTextBold ~= nil then
-        setTextBold(false)
+
+    if self.logoList ~= nil then
+        self.logoList:setDataSource(self)
+        self.logoList:setDelegate(self)
     end
 end
 
-local function fitText(value, size, maxWidth)
-    value = tostring(value or "")
-
-    if getTextWidth == nil or getTextWidth(size, value) <= maxWidth then
-        return value
-    end
-
-    while #value > 1 and getTextWidth(size, value .. "...") > maxWidth do
-        value = string.sub(value, 1, -2)
-    end
-
-    return value .. "..."
+-- Called by P.open() before showDialog.
+function D:setData(logos, selectedIndex, tint)
+    self.logos = logos or {}
+    self.selectedIndex = math.max(1, math.min(#self.logos, selectedIndex or 1))
+    self.tint = tint or {1, 1, 1, 1}
 end
 
-function P:getTime()
-    if g_time ~= nil then
-        return g_time
-    end
+function D:onOpen()
+    D:superClass().onOpen(self)
 
-    return (self.clock or 0)
-end
-
--- ------------------------------------------------------------------ layout ---
-
-function P:computeLayout()
-    local aspect = g_screenAspectRatio or (16 / 9)
-    local L = {}
-
-    L.x = 0.5 - self.PANEL_W / 2
-    L.y = 0.5 - self.PANEL_H / 2
-    L.w = self.PANEL_W
-    L.h = self.PANEL_H
-    L.gridX = L.x + self.PAD_X
-    L.gridW = L.w - 2 * self.PAD_X - self.SCROLLBAR_W - 0.006
-    L.gridTop = L.y + L.h - self.HEADER_H
-    L.gridBottom = L.y + self.FOOTER_H
-    L.cellW = L.gridW / self.COLUMNS
-    L.tileW = L.cellW * 0.66
-    L.tileH = L.tileW * aspect               -- square in pixels
-    L.rowH = L.tileH + self.LABEL_H + self.ROW_GAP
-    L.visibleRows = math.max(1, math.floor((L.gridTop - L.gridBottom) / L.rowH))
-    L.rows = math.max(1, math.ceil(#self.logos / self.COLUMNS))
-    L.maxScroll = math.max(0, L.rows - L.visibleRows)
-
-    -- vertically centre the visible rows in the grid area
-    L.gridTop = L.gridTop - ((L.gridTop - L.gridBottom) - L.visibleRows * L.rowH) / 2
-
-    L.confirmX = L.x + L.w - self.PAD_X - self.BUTTON_W
-    L.cancelX = L.confirmX - 0.008 - self.BUTTON_W
-    L.buttonY = L.y + (self.FOOTER_H - self.BUTTON_H) / 2
-    L.scrollX = L.x + L.w - self.PAD_X - self.SCROLLBAR_W
-
-    self.layout = L
-    return L
-end
-
--- Cell rectangle of logo index (1-based), or nil when scrolled out of view.
-function P:getCell(index)
-    local L = self.layout
-    local row = math.floor((index - 1) / self.COLUMNS) - self.scrollRow
-    local col = (index - 1) % self.COLUMNS
-
-    if row < 0 or row >= L.visibleRows then
-        return nil
-    end
-
-    local cellX = L.gridX + col * L.cellW
-    local cellTop = L.gridTop - row * L.rowH
-    local cell = {x = cellX, y = cellTop - L.rowH, w = L.cellW, h = L.rowH}
-    cell.tileX = cellX + (L.cellW - L.tileW) / 2
-    cell.tileY = cellTop - 0.004 - L.tileH
-    cell.labelY = cell.tileY - self.LABEL_H * 0.75
-
-    return cell
-end
-
-function P:getIndexAt(posX, posY)
-    for index = 1, #self.logos do
-        local cell = self:getCell(index)
-
-        if cell ~= nil and inside(posX, posY, cell.x, cell.y, cell.w, cell.h) then
-            return index
-        end
-    end
-
-    return nil
-end
-
-function P:scrollTo(index)
-    if index == nil then
+    if self.logoList == nil then
         return
     end
 
-    local row = math.floor((index - 1) / self.COLUMNS)
-    local L = self.layout
+    self.logoList:reloadData()
 
-    if row < self.scrollRow then
-        self.scrollRow = row
-    elseif row >= self.scrollRow + L.visibleRows then
-        self.scrollRow = row - L.visibleRows + 1
+    local index = self.selectedIndex
+    pcall(function()
+        if self.logoList.setSelectedItem ~= nil then
+            self.logoList:setSelectedItem(1, index, true, true)
+        elseif self.logoList.setSelectedIndex ~= nil then
+            self.logoList:setSelectedIndex(index, true)
+        end
+    end)
+
+    if FocusManager ~= nil and FocusManager.setFocus ~= nil then
+        pcall(function()
+            FocusManager:setFocus(self.logoList)
+        end)
+    end
+end
+
+function D:getNumberOfItemsInSection(list, section)
+    return #self.logos
+end
+
+local function getCellChild(cell, name)
+    if cell.getAttribute ~= nil then
+        local ok, element = pcall(cell.getAttribute, cell, name)
+        if ok and element ~= nil then
+            return element
+        end
     end
 
-    self.scrollRow = math.max(0, math.min(L.maxScroll, self.scrollRow))
+    return cell.attributes ~= nil and cell.attributes[name] or nil
 end
 
-function P:scrollBy(rows)
-    self.scrollRow = math.max(0, math.min(self.layout.maxScroll, self.scrollRow + rows))
+function D:populateCellForItemInSection(list, section, index, cell)
+    local fic = FarmIconColor
+    local logoName = self.logos[index]
+
+    if logoName == nil then
+        return
+    end
+
+    local icon = getCellChild(cell, "icon")
+    local texture = fic.logos[logoName]
+    local filename = texture ~= nil and fic:resolveModTextureFilename(texture) or nil
+
+    if icon ~= nil and filename ~= nil then
+        if icon.setImageFilename ~= nil then
+            icon:setImageFilename(filename)
+        end
+
+        -- The mod multiplies logos by the farm colour: show them the same way.
+        if icon.setImageColor ~= nil then
+            icon:setImageColor(nil, self.tint[1], self.tint[2], self.tint[3], 1)
+
+            if GuiOverlay ~= nil then
+                for _, state in pairs({GuiOverlay.STATE_SELECTED, GuiOverlay.STATE_FOCUSED, GuiOverlay.STATE_HIGHLIGHTED, GuiOverlay.STATE_PRESSED}) do
+                    if state ~= nil then
+                        icon:setImageColor(state, self.tint[1], self.tint[2], self.tint[3], 1)
+                    end
+                end
+            end
+        end
+    end
+
+    local title = getCellChild(cell, "title")
+
+    if title ~= nil and title.setText ~= nil then
+        title:setText(fic:getLogoDisplayName(logoName))
+    end
 end
 
--- -------------------------------------------------------------- open/close ---
+function D:onListSelectionChanged(list, section, index)
+    if index ~= nil and index > 0 then
+        self.selectedIndex = index
+    end
+end
+
+function D:getSelectedLogo()
+    if self.logoList ~= nil and self.logoList.getSelectedIndexInSection ~= nil then
+        local ok, index = pcall(self.logoList.getSelectedIndexInSection, self.logoList)
+
+        if ok and index ~= nil and index > 0 then
+            self.selectedIndex = index
+        end
+    end
+
+    return self.logos[self.selectedIndex]
+end
+
+function D:onDoubleClickLogo(list, section, index)
+    self:applyAndClose(index ~= nil and self.logos[index] or self:getSelectedLogo())
+end
+
+function D:onClickOk()
+    self:applyAndClose(self:getSelectedLogo())
+    return false
+end
+
+function D:applyAndClose(logoName)
+    self:close()
+
+    if logoName ~= nil then
+        FarmIconColor:safeCall("apply logo from picker", function()
+            FarmIconColor:setLogoInActiveFarmDialogByName(logoName)
+        end)
+    end
+end
+
+function D:onClickBack(forceBack, usedMenuButton)
+    self:close()
+    return false
+end
+
+-- ================================================================ opener ===
+
+function P:loadDialog()
+    if g_gui == nil or self.dialog ~= nil then
+        return self.dialog ~= nil
+    end
+
+    if g_gui.guis ~= nil and g_gui.guis[self.DIALOG_NAME] ~= nil and D.INSTANCE ~= nil then
+        self.dialog = D.INSTANCE
+        return true
+    end
+
+    local ok, result = pcall(function()
+        g_gui:loadProfiles(self.MOD_DIRECTORY .. "gui/logoPickerProfiles.xml")
+        local instance = D.new()
+        local gui = g_gui:loadGui(self.MOD_DIRECTORY .. "gui/logoPickerDialog.xml", self.DIALOG_NAME, instance)
+        return gui ~= nil and instance or nil
+    end)
+
+    if ok and result ~= nil then
+        D.INSTANCE = result
+        self.dialog = result
+        return true
+    end
+
+    if not self.loadErrorLogged and Logging ~= nil and Logging.warning ~= nil then
+        self.loadErrorLogged = true
+        Logging.warning("[FS25_farmIconColor] Logo picker dialog could not be loaded: %s", tostring(result))
+    end
+
+    return false
+end
+
+function P:isDialogOpen()
+    local gui = g_gui ~= nil and g_gui.guis ~= nil and g_gui.guis[self.DIALOG_NAME] or nil
+
+    if gui == nil or type(g_gui.dialogs) ~= "table" then
+        return false
+    end
+
+    for _, dialog in ipairs(g_gui.dialogs) do
+        if dialog == gui then
+            return true
+        end
+    end
+
+    return false
+end
 
 function P:getFarmDisplayColor()
     local fic = FarmIconColor
@@ -178,330 +233,37 @@ function P:getFarmDisplayColor()
     return fic:toGuiDisplayColor(color or {1, 1, 1, 1}) or {1, 1, 1, 1}
 end
 
-function P:open(dialog)
+function P:open()
     local fic = FarmIconColor
 
-    if self.isOpen or type(dialog) ~= "table" or createImageOverlay == nil or drawFilledRect == nil then
+    if self:isDialogOpen() or not self:loadDialog() then
         return false
     end
 
     fic:ensureSelectableLogos()
-    self.logos = {}
-    self.overlays = {}
+
+    local logos = {}
+    local current = fic:getActiveFarmDialogLogoName()
+    local selectedIndex = 1
 
     for _, logoName in ipairs(fic.logoOrder or {}) do
-        local texture = fic.logos[logoName]
-        local filename = texture ~= nil and fic:resolveModTextureFilename(texture) or nil
+        if fic.logos[logoName] ~= nil then
+            table.insert(logos, logoName)
 
-        if filename ~= nil then
-            local ok, overlayId = pcall(createImageOverlay, filename)
-
-            if ok and overlayId ~= nil and overlayId ~= 0 then
-                table.insert(self.logos, logoName)
-                self.overlays[logoName] = overlayId
+            if logoName == current then
+                selectedIndex = #logos
             end
         end
     end
 
-    if #self.logos == 0 then
+    if #logos == 0 then
         return false
     end
 
-    self.isOpen = true
-    self.dialog = dialog
-    self.scrollRow = 0
-    self.hoverIndex = nil
-    self.pressedTarget = nil
-    self.lastClickIndex = nil
-    self.lastClickTime = -10000
-    self.tint = self:getFarmDisplayColor()
-    self.keyStates = {}
-
-    local current = fic:getActiveFarmDialogLogoName()
-    self.selectedIndex = 1
-
-    for index, logoName in ipairs(self.logos) do
-        if logoName == current then
-            self.selectedIndex = index
-        end
-    end
-
-    self:computeLayout()
-    self:scrollTo(self.selectedIndex)
-    self:installInputAndDrawHooks(dialog)
+    self.dialog:setData(logos, selectedIndex, self:getFarmDisplayColor())
+    g_gui:showDialog(self.DIALOG_NAME)
 
     return true
-end
-
-function P:close(apply)
-    if not self.isOpen then
-        return
-    end
-
-    local logoName = self.logos[self.selectedIndex]
-
-    self:removeInputAndDrawHooks()
-
-    for _, overlayId in pairs(self.overlays or {}) do
-        pcall(delete, overlayId)
-    end
-
-    self.overlays = {}
-    self.isOpen = false
-    self.dialog = nil
-
-    if apply and logoName ~= nil then
-        FarmIconColor:safeCall("apply logo from picker", function()
-            FarmIconColor:setLogoInActiveFarmDialogByName(logoName)
-        end)
-    end
-end
-
--- Draw on top of the farm dialog, and swallow its menu input while open.
-function P:installInputAndDrawHooks(dialog)
-    self.hooks = {}
-
-    local function hook(object, field, wrapper)
-        if type(object) ~= "table" or type(object[field]) ~= "function" then
-            return
-        end
-
-        table.insert(self.hooks, {object = object, field = field, own = rawget(object, field)})
-        local base = object[field]
-        object[field] = function(...)
-            return wrapper(base, ...)
-        end
-    end
-
-    hook(dialog, "draw", function(base, ...)
-        local result = base(...)
-        FarmIconColor:safeCall("draw logo picker", function()
-            P:render()
-        end)
-        return result
-    end)
-
-    local listeners = {}
-    -- pairs (not ipairs): currentListener or target can be nil.
-    local candidates = {g_gui ~= nil and g_gui.currentListener or nil, dialog.target, dialog}
-
-    for _, candidate in pairs(candidates) do
-        if type(candidate) == "table" and not listeners[candidate] then
-            listeners[candidate] = true
-            hook(candidate, "inputEvent", function(base, object, action, value, eventUsed)
-                if P.isOpen then
-                    P:onMenuAction(action, value)
-                    return true
-                end
-                return base(object, action, value, eventUsed)
-            end)
-        end
-    end
-end
-
-function P:removeInputAndDrawHooks()
-    for index = #(self.hooks or {}), 1, -1 do
-        local h = self.hooks[index]
-        rawset(h.object, h.field, h.own) -- nil restores the class method
-    end
-
-    self.hooks = {}
-end
-
--- ------------------------------------------------------------------- input ---
-
-function P:moveSelection(delta)
-    local index = math.max(1, math.min(#self.logos, (self.selectedIndex or 1) + delta))
-    self.selectedIndex = index
-    self:scrollTo(index)
-end
-
-function P:onMenuAction(action, value)
-    if InputAction == nil then
-        return
-    end
-
-    if action == InputAction.MENU_ACCEPT then
-        self:close(true)
-    elseif action == InputAction.MENU_BACK then
-        self:close(false)
-    end
-    -- Other menu actions (axes...) are swallowed: arrows are read in pollKeys().
-end
-
-function P:mouseEvent(posX, posY, isDown, isUp, button)
-    local L = self.layout
-    self.hoverIndex = self:getIndexAt(posX, posY)
-    self.hoverButton = nil
-
-    if inside(posX, posY, L.confirmX, L.buttonY, self.BUTTON_W, self.BUTTON_H) then
-        self.hoverButton = "confirm"
-    elseif inside(posX, posY, L.cancelX, L.buttonY, self.BUTTON_W, self.BUTTON_H) then
-        self.hoverButton = "cancel"
-    end
-
-    if Input ~= nil and isDown then
-        if button == Input.MOUSE_BUTTON_WHEEL_UP then
-            self:scrollBy(-1)
-            return
-        elseif button == Input.MOUSE_BUTTON_WHEEL_DOWN then
-            self:scrollBy(1)
-            return
-        end
-    end
-
-    if Input == nil or button ~= Input.MOUSE_BUTTON_LEFT then
-        return
-    end
-
-    local target = self.hoverButton or self.hoverIndex
-
-    if isDown then
-        self.pressedTarget = target
-        return
-    end
-
-    if not isUp or target == nil or target ~= self.pressedTarget then
-        self.pressedTarget = nil
-        return
-    end
-
-    self.pressedTarget = nil
-
-    if target == "confirm" then
-        self:close(true)
-    elseif target == "cancel" then
-        self:close(false)
-    else
-        local now = self:getTime()
-
-        if self.lastClickIndex == target and now - self.lastClickTime <= self.DOUBLE_CLICK_MS then
-            self.selectedIndex = target
-            self:close(true)
-            return
-        end
-
-        self.selectedIndex = target
-        self.lastClickIndex = target
-        self.lastClickTime = now
-    end
-end
-
--- Raw keys (same approach as the rest of the mod): arrows, Enter, Esc.
-function P:pollKeys()
-    if Input == nil or Input.isKeyPressed == nil then
-        return
-    end
-
-    local keys = {
-        {Input.KEY_left, function() self:moveSelection(-1) end},
-        {Input.KEY_right, function() self:moveSelection(1) end},
-        {Input.KEY_up, function() self:moveSelection(-self.COLUMNS) end},
-        {Input.KEY_down, function() self:moveSelection(self.COLUMNS) end},
-        {Input.KEY_pageup, function() self:scrollBy(-self.layout.visibleRows) end},
-        {Input.KEY_pagedown, function() self:scrollBy(self.layout.visibleRows) end}
-    }
-
-    for _, entry in ipairs(keys) do
-        local keyCode = entry[1]
-
-        if keyCode ~= nil then
-            local ok, pressed = pcall(Input.isKeyPressed, keyCode)
-            pressed = ok and pressed == true
-
-            if pressed and not self.keyStates[keyCode] then
-                entry[2]()
-            end
-
-            self.keyStates[keyCode] = pressed
-        end
-    end
-end
-
--- -------------------------------------------------------------------- draw ---
-
-function P:render()
-    if not self.isOpen then
-        return
-    end
-
-    local fic = FarmIconColor
-    local L = self:computeLayout()
-    self.scrollRow = math.max(0, math.min(L.maxScroll, self.scrollRow))
-
-    -- dim the dialog behind + panel
-    rect(0, 0, 1, 1, {0, 0, 0, 0.55})
-    rect(L.x, L.y, L.w, L.h, {0.07, 0.07, 0.07, 0.97})
-    rect(L.x, L.y + L.h - 0.003, L.w, 0.003, self.ACCENT)
-
-    text(L.x + self.PAD_X, L.y + L.h - self.HEADER_H * 0.62, self.TITLE_SIZE,
-        fic:getTranslatedText("farmIconColor_pickerTitle", "Select a logo"), {1, 1, 1, 1}, RenderText.ALIGN_LEFT, true)
-    text(L.x + L.w - self.PAD_X, L.y + L.h - self.HEADER_H * 0.60, self.TEXT_SIZE,
-        string.format("%d / %d", self.selectedIndex or 0, #self.logos), {0.7, 0.7, 0.7, 1}, RenderText.ALIGN_RIGHT)
-
-    for index, logoName in ipairs(self.logos) do
-        local cell = self:getCell(index)
-
-        if cell ~= nil then
-            local selected = index == self.selectedIndex
-            local hovered = index == self.hoverIndex
-
-            if selected then
-                rect(cell.x + 0.002, cell.y + 0.002, cell.w - 0.004, cell.h - 0.004, {0.56, 0.78, 0.10, 0.22})
-                local bx, by = 0.0015, 0.0015 * (g_screenAspectRatio or 1.78)
-                rect(cell.x + 0.002, cell.y + 0.002, cell.w - 0.004, by, self.ACCENT)
-                rect(cell.x + 0.002, cell.y + cell.h - 0.002 - by, cell.w - 0.004, by, self.ACCENT)
-                rect(cell.x + 0.002, cell.y + 0.002, bx, cell.h - 0.004, self.ACCENT)
-                rect(cell.x + cell.w - 0.002 - bx, cell.y + 0.002, bx, cell.h - 0.004, self.ACCENT)
-            elseif hovered then
-                rect(cell.x + 0.002, cell.y + 0.002, cell.w - 0.004, cell.h - 0.004, {1, 1, 1, 0.08})
-            end
-
-            local overlayId = self.overlays[logoName]
-            if overlayId ~= nil then
-                setOverlayColor(overlayId, self.tint[1], self.tint[2], self.tint[3], 1)
-                renderOverlay(overlayId, cell.tileX, cell.tileY, L.tileW, L.tileH)
-            end
-
-            local label = fitText(fic:getLogoDisplayName(logoName), self.TEXT_SIZE, cell.w - 0.006)
-            text(cell.x + cell.w / 2, cell.labelY, self.TEXT_SIZE, label,
-                selected and self.ACCENT or {0.85, 0.85, 0.85, 1}, RenderText.ALIGN_CENTER, selected)
-        end
-    end
-
-    -- scrollbar
-    if L.maxScroll > 0 then
-        local trackH = L.gridTop - L.gridBottom
-        local thumbH = math.max(0.03, trackH * L.visibleRows / L.rows)
-        local thumbY = L.gridTop - thumbH - (trackH - thumbH) * (self.scrollRow / L.maxScroll)
-        rect(L.scrollX, L.gridBottom, self.SCROLLBAR_W, trackH, {1, 1, 1, 0.08})
-        rect(L.scrollX, thumbY, self.SCROLLBAR_W, thumbH, {1, 1, 1, 0.45})
-    end
-
-    -- footer
-    rect(L.x, L.y + self.FOOTER_H, L.w, 0.0015, {1, 1, 1, 0.10})
-    text(L.x + self.PAD_X, L.y + self.FOOTER_H / 2 - self.TEXT_SIZE * 0.35, self.TEXT_SIZE * 0.95,
-        fic:getTranslatedText("farmIconColor_pickerHint", "Wheel: scroll - Double-click: confirm"), {0.65, 0.65, 0.65, 1})
-
-    for _, button in ipairs({
-        {id = "cancel", x = L.cancelX, key = "farmIconColor_pickerCancel", fallback = "Cancel"},
-        {id = "confirm", x = L.confirmX, key = "farmIconColor_pickerConfirm", fallback = "Confirm"}
-    }) do
-        local isConfirm = button.id == "confirm"
-        local background = isConfirm and self.ACCENT or {0.22, 0.22, 0.22, 1}
-
-        if self.hoverButton == button.id then
-            background = isConfirm and {0.66, 0.88, 0.20, 1} or {0.32, 0.32, 0.32, 1}
-        end
-
-        rect(button.x, L.buttonY, self.BUTTON_W, self.BUTTON_H, background)
-        text(button.x + self.BUTTON_W / 2, L.buttonY + self.BUTTON_H / 2 - self.TEXT_SIZE * 0.35, self.TEXT_SIZE,
-            fic:getTranslatedText(button.key, button.fallback), isConfirm and {0.05, 0.05, 0.05, 1} or {1, 1, 1, 1},
-            RenderText.ALIGN_CENTER, true)
-    end
-
-    setTextAlignment(RenderText.ALIGN_LEFT)
-    setTextColor(1, 1, 1, 1)
 end
 
 -- -------------------------------------------- farm dialog: button + clicks ---
@@ -520,6 +282,40 @@ function P:getVisibleFarmDialog()
     end
 
     return nil
+end
+
+-- Places the "Logos" button left of its anchor, a bit narrower than the native
+-- buttons so that it stays inside the dialog footer.
+function P:positionFooterButton(button, anchor)
+    if type(anchor.position) ~= "table" or type(anchor.size) ~= "table" then
+        return
+    end
+
+    local anchorWidth = tonumber(anchor.size[1]) or 0.1
+    local height = tonumber(anchor.size[2])
+    local width = anchorWidth * 0.62
+    local x = (tonumber(anchor.position[1]) or 0) - width - 0.004
+    local y = tonumber(anchor.position[2]) or 0
+
+    button.layoutIgnore = true
+
+    if button.setSize ~= nil and height ~= nil then
+        pcall(function()
+            button:setSize(width, height)
+        end)
+    end
+
+    if button.setPosition ~= nil then
+        pcall(function()
+            button:setPosition(x, y)
+        end)
+    end
+
+    if button.updateAbsolutePosition ~= nil then
+        pcall(function()
+            button:updateAbsolutePosition()
+        end)
+    end
 end
 
 -- "Logos" footer button, cloned from the Color button like the Import button.
@@ -558,7 +354,7 @@ function P:ensureFooterButton(dialog)
         button.name = "farmIconColorLogoPickerButton"
         button.isTriggerableByGlobalAction = false
         button.onClickCallback = function()
-            P:open(P:getVisibleFarmDialog())
+            P:open()
         end
 
         fic:setGuiElementText(button, fic:getTranslatedText("input_" .. self.ACTION_NAME, "Logos"))
@@ -580,16 +376,23 @@ function P:ensureFooterButton(dialog)
         anchor = importButton
     end
 
-    fic:positionFarmDialogImportButton(button, anchor)
+    self:positionFooterButton(button, anchor)
     fic:ensureFarmDialogImportButtonMouseRegistration(button)
     fic:showGuiElementWithParents(button)
 
     return button
 end
 
--- Persistent mouse hook on the farm dialog: feeds the picker while open, and
--- opens it from the "Logos" button or a click on the big logo preview.
-function P:hookDialogMouse(dialog)
+local function isInside(element, posX, posY)
+    return type(element) == "table" and element.visible ~= false
+        and type(element.absPosition) == "table" and type(element.size) == "table"
+        and posX >= element.absPosition[1] and posX <= element.absPosition[1] + element.size[1]
+        and posY >= element.absPosition[2] and posY <= element.absPosition[2] + element.size[2]
+end
+
+-- Persistent mouse hook on the farm dialog: opens the picker from the "Logos"
+-- button or a click on the big logo preview.
+function P:hookFarmDialogMouse(dialog)
     if dialog.farmIconColorLogoPickerMouseHooked == true or type(dialog.mouseEvent) ~= "function" then
         return
     end
@@ -598,26 +401,9 @@ function P:hookDialogMouse(dialog)
     local previous = dialog.mouseEvent
 
     dialog.mouseEvent = function(guiSelf, posX, posY, isDown, isUp, button, eventUsed)
-        if P.isOpen and P.dialog == guiSelf then
-            FarmIconColor:safeCall("logo picker mouse", function()
-                P:mouseEvent(posX, posY, isDown, isUp, button)
-            end)
-            return true
-        end
-
-        if Input ~= nil and button == Input.MOUSE_BUTTON_LEFT and (isDown or isUp) then
-            local hit = false
-
-            -- pairs (not ipairs): the first element can be nil.
-            local targets = {guiSelf.farmIconColorLogoPickerButtonElement, FarmIconColor:getVisibleDialogPreviewLogoElement()}
-
-            for _, element in pairs(targets) do
-                if type(element) == "table" and element.visible ~= false and type(element.absPosition) == "table"
-                    and type(element.size) == "table"
-                    and inside(posX, posY, element.absPosition[1], element.absPosition[2], element.size[1], element.size[2]) then
-                    hit = true
-                end
-            end
+        if Input ~= nil and button == Input.MOUSE_BUTTON_LEFT and (isDown or isUp) and not P:isDialogOpen() then
+            local hit = isInside(guiSelf.farmIconColorLogoPickerButtonElement, posX, posY)
+                or isInside(FarmIconColor:getVisibleDialogPreviewLogoElement(), posX, posY)
 
             if hit and isDown then
                 guiSelf.farmIconColorLogoPickerPressed = true
@@ -629,7 +415,7 @@ function P:hookDialogMouse(dialog)
                 guiSelf.farmIconColorLogoPickerPressed = false
 
                 if hit and wasPressed then
-                    P:open(guiSelf)
+                    P:open()
                     return true
                 end
             end
@@ -639,37 +425,29 @@ function P:hookDialogMouse(dialog)
     end
 end
 
--- ----------------------------------------------------------------- update ---
+-- -------------------------------------------------- mod listener callbacks ---
+-- (only loadMap / deleteMap / update: names like mouseEvent or draw would be
+-- called by the game for every mod listener)
 
 function P:loadMap()
-    self.isOpen = false
-    self.keyStates = {}
+    self.dialog = nil
     self.openKeyDown = false
-    self.clock = 0
+    self:loadDialog()
 end
 
 function P:deleteMap()
-    self:close(false)
+    if self:isDialogOpen() then
+        pcall(function()
+            g_gui:closeDialogByName(self.DIALOG_NAME)
+        end)
+    end
 end
 
 function P:update(dt)
     local fic = FarmIconColor
-    self.clock = (self.clock or 0) + (dt or 0)
 
-    if self.isOpen then
-        if self.dialog == nil or not fic:isDialogVisible(self.dialog) then
-            self:close(false)
-            return
-        end
-
-        self:pollKeys()
-
-        -- Keep tracking L so the key must be released before it can reopen.
-        if Input ~= nil and Input.KEY_l ~= nil and Input.isKeyPressed ~= nil then
-            local ok, pressed = pcall(Input.isKeyPressed, Input.KEY_l)
-            self.openKeyDown = ok and pressed == true
-        end
-
+    if self:isDialogOpen() then
+        self.openKeyDown = true -- L must be released before it can reopen
         return
     end
 
@@ -684,9 +462,8 @@ function P:update(dt)
         return
     end
 
-    local footerButton = self:ensureFooterButton(dialog)
-    dialog.farmIconColorLogoPickerButtonElement = footerButton
-    self:hookDialogMouse(dialog)
+    dialog.farmIconColorLogoPickerButtonElement = self:ensureFooterButton(dialog)
+    self:hookFarmDialogMouse(dialog)
 
     -- Keyboard shortcut (L), ignored while typing in a text field.
     local keyCode = Input ~= nil and Input.KEY_l or nil
@@ -696,7 +473,7 @@ function P:update(dt)
         pressed = ok and pressed == true
 
         if pressed and not self.openKeyDown and not fic:isTextInputActive() then
-            self:open(dialog)
+            self:open()
         end
 
         self.openKeyDown = pressed

@@ -285,20 +285,10 @@ Eingaben:
             <fr>Sélectionner un logo</fr>
             <de>Logo auswählen</de>
         </text>
-        <text name="farmIconColor_pickerHint">
-            <en>Wheel: scroll - Double-click: confirm</en>
-            <fr>Molette : défiler - Double-clic : valider</fr>
-            <de>Mausrad: scrollen - Doppelklick: bestätigen</de>
-        </text>
         <text name="farmIconColor_pickerConfirm">
             <en>Confirm</en>
             <fr>Valider</fr>
             <de>Bestätigen</de>
-        </text>
-        <text name="farmIconColor_pickerCancel">
-            <en>Cancel</en>
-            <fr>Annuler</fr>
-            <de>Abbrechen</de>
         </text>
         <text name="input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO">
             <en>Import</en>
