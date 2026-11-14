@@ -16,6 +16,8 @@ FarmIconColor.CUSTOM_LOGO_IMPORT_ACTION_NAME = "FARMICONCOLOR_IMPORT_CUSTOM_LOGO
 -- The Import button now lives in the logo picker dialog (scripts/logoPicker.lua);
 -- the farm dialog shows the "Logos" button in its place.
 FarmIconColor.FARM_DIALOG_IMPORT_BUTTON_ENABLED = false
+-- The "Logo de la ferme" row (label + arrows) is replaced by the Logos window.
+FarmIconColor.FARM_DIALOG_LOGO_SELECTOR_ENABLED = false
 FarmIconColor.LOGO_SELECTOR_OVERLAY_ENABLED = false
 
 -- Release build: keep ModHub log.txt clean.
@@ -2812,7 +2814,7 @@ function FarmIconColor:updateActiveFarmDialogLogoSelectorLabel()
         return
     end
 
-    if not self:hasVisibleFarmEditDialog() then
+    if self.FARM_DIALOG_LOGO_SELECTOR_ENABLED ~= true or not self:hasVisibleFarmEditDialog() then
         self:restoreNativeLogoSelectorToOriginalParent()
         self.logoSelectorLastText = nil
         return
@@ -4900,6 +4902,70 @@ function FarmIconColor:hookFarmDialogImportMouseClick(dialog, importButton)
     end
 end
 
+-- Width of a button label as rendered (upper-cased like the native footer buttons).
+function FarmIconColor:getGuiButtonTextWidth(button)
+    if type(button) ~= "table" or getTextWidth == nil then
+        return nil
+    end
+
+    local textSize = tonumber(button.textSize)
+    local text = self:getGuiElementText(button)
+
+    if textSize == nil or textSize <= 0 or text == nil or text == "" then
+        return nil
+    end
+
+    if button.textUpperCase == true then
+        text = (utf8ToUpper ~= nil and utf8ToUpper(text)) or string.upper(text)
+    end
+
+    local ok, width = pcall(getTextWidth, textSize, text)
+
+    if ok and type(width) == "number" and width > 0 then
+        return width
+    end
+
+    return nil
+end
+
+-- Native gap between the Color button and the next footer button on its right.
+function FarmIconColor:getFarmDialogFooterSpacing(colorButton)
+    local fallback = 0.010
+    local parent = colorButton.parent
+    local colorPos = colorButton.position
+    local colorSize = colorButton.size
+
+    if type(parent) ~= "table" or type(parent.elements) ~= "table"
+        or type(colorPos) ~= "table" or type(colorSize) ~= "table" then
+        return fallback
+    end
+
+    local colorRight = (tonumber(colorPos[1]) or 0) + (tonumber(colorSize[1]) or 0)
+    local best = nil
+
+    for _, sibling in pairs(parent.elements) do
+        if type(sibling) == "table" and sibling ~= colorButton
+            and sibling.farmIconColorLogoPickerButton ~= true
+            and sibling.farmIconColorImportButton ~= true
+            and sibling.visible ~= false
+            and type(sibling.position) == "table"
+            and (self:isGuiButtonElement(sibling) or sibling.onClickCallback ~= nil or sibling.inputActionName ~= nil)
+        then
+            local gap = (tonumber(sibling.position[1]) or 0) - colorRight
+
+            if gap >= 0 and (best == nil or gap < best) then
+                best = gap
+            end
+        end
+    end
+
+    if best == nil or best > 0.05 then
+        return fallback
+    end
+
+    return best
+end
+
 function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     if type(importButton) ~= "table" or type(colorButton) ~= "table" then
         return
@@ -4918,11 +4984,25 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     local width = type(colorSize) == "table" and tonumber(colorSize[1]) or nil
     width = width or (type(importSize) == "table" and tonumber(importSize[1]) or nil) or 0.12
     local height = type(colorSize) == "table" and tonumber(colorSize[2]) or nil
-    local spacing = 0.010
+
+    -- Same layout as the native footer: the button is as wide as its own label
+    -- (the Color button width minus the label difference) and keeps the same gap.
+    local colorTextWidth = self:getGuiButtonTextWidth(colorButton)
+    local ownTextWidth = self:getGuiButtonTextWidth(importButton)
+
+    if colorTextWidth ~= nil and ownTextWidth ~= nil then
+        local fitted = width - colorTextWidth + ownTextWidth
+
+        if fitted > 0.01 then
+            width = fitted
+        end
+    end
+
+    local spacing = self:getFarmDialogFooterSpacing(colorButton)
     local newX = x - width - spacing
 
-    -- Keep the import button out of a parent BoxLayout: we want it exactly to the left
-    -- of the existing Color button (the empty footer slot visible in the farm dialog).
+    -- Keep the button out of a parent BoxLayout: it sits exactly to the left
+    -- of the existing Color button.
     importButton.layoutIgnore = true
 
     if importButton.setSize ~= nil and height ~= nil then
