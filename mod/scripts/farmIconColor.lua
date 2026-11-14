@@ -85,8 +85,8 @@ function FarmIconColor:loadMap()
     self.runtimeFarmColors = {}
     self.runtimeFarmLogos = {}
     self.savegameDataLoaded = false
-    self.savegameDataLoadAttempted = false
-    self.savegameSaveLogged = false
+    self.savegameDataDirty = false
+    self.pendingDevDataMigrationFilename = nil
     self.farmDialogColorButtonHookLogged = false
     self.farmDialogVanillaColorControlsHiddenLogged = false
     self.pendingDialogLogoRefreshFarmId = nil
@@ -133,10 +133,6 @@ end
 
 function FarmIconColor:deleteMap()
     self:restoreNativeLogoSelectorToOriginalParent()
-    if (type(self.runtimeFarmColors) == "table" and next(self.runtimeFarmColors) ~= nil)
-        or (type(self.runtimeFarmLogos) == "table" and next(self.runtimeFarmLogos) ~= nil) then
-        self:saveSavegameData("deleteMap safety save")
-    end
 
     FarmIconColor:debugPrint(string.format("[%s] Unloading script", self.MOD_NAME))
 end
@@ -506,16 +502,6 @@ function FarmIconColor:getLegacySavegameDirectory()
     return directory
 end
 
-function FarmIconColor:getLegacySavegameDataFilename()
-    local directory = self:getLegacySavegameDirectory()
-
-    if directory == nil or directory == "" then
-        return nil
-    end
-
-    return self:joinPath(directory, self.SAVE_FILE_NAME)
-end
-
 function FarmIconColor:getCustomLogoDirectory()
     -- Custom logos are intentionally stored in modSettings instead of savegameX.
     -- This makes the import folder stable for local players and multiplayer admins,
@@ -738,14 +724,42 @@ function FarmIconColor:getModSettingsSaveDirectory()
     return directory
 end
 
-function FarmIconColor:getSavegameDataFilename()
-    local directory = self:getModSettingsSaveDirectory()
+-- Farm visuals are stored INSIDE the savegame (savegameX/farmIconColor.xml),
+-- written when the game itself saves (see FSCareerMissionInfo hook at the end
+-- of this file). This is the 1.0 ModHub location, it follows the savegame on
+-- copy/backup/dedicated-server download and a new career never inherits it.
+function FarmIconColor:getSavegameDirectoryForData()
+    local missionInfo = g_currentMission ~= nil and g_currentMission.missionInfo or nil
 
-    if directory ~= nil and directory ~= "" then
-        return self:joinPath(directory, self:getMissionSavegameKey() .. ".xml")
+    if type(missionInfo) ~= "table" or missionInfo.savegameDirectory == nil or tostring(missionInfo.savegameDirectory) == "" then
+        return nil
     end
 
-    return self:getLegacySavegameDataFilename()
+    return tostring(missionInfo.savegameDirectory)
+end
+
+function FarmIconColor:isExistingSavegame()
+    local missionInfo = g_currentMission ~= nil and g_currentMission.missionInfo or nil
+
+    if type(missionInfo) ~= "table" or missionInfo.isNewSPCareer == true then
+        return false
+    end
+
+    local directory = self:getSavegameDirectoryForData()
+
+    return directory ~= nil and fileExists ~= nil and fileExists(self:joinPath(directory, "careerSavegame.xml"))
+end
+
+-- 1.1 development builds stored the data in modSettings/FS25_farmIconColor/savegameX.xml.
+-- Only read once to migrate it into the savegame.
+function FarmIconColor:getDevModSettingsDataFilename()
+    local directory = self:getModSettingsSaveDirectory()
+
+    if directory == nil or directory == "" then
+        return nil
+    end
+
+    return self:joinPath(directory, self:getMissionSavegameKey() .. ".xml")
 end
 
 function FarmIconColor:isMultiplayerGame()
@@ -782,58 +796,16 @@ function FarmIconColor:isAuthoritativeInstance()
     return not self:isClientOnlyMultiplayer()
 end
 
-function FarmIconColor:tryLoadSavegameData()
-    if self.savegameDataLoaded == true then
-        return true
-    end
-
-    if not self:isAuthoritativeInstance() then
-        self.savegameDataLoaded = true
-        self.savegameDataLoadAttempted = true
-
-        if not self.clientLocalSavegameSkipLogged then
-            self.clientLocalSavegameSkipLogged = true
-            FarmIconColor:debugPrint(string.format("[%s] Multiplayer client: local savegame data skipped, waiting for server sync", self.MOD_NAME))
-        end
-
-        return false
-    end
-
-    local filename = self:getSavegameDataFilename()
-    local primaryFilename = filename
-    local loadedFromLegacy = false
-
-    if filename == nil then
-        return false
-    end
-
-    if fileExists ~= nil and not fileExists(filename) then
-        local legacyFilename = self:getLegacySavegameDataFilename()
-
-        if legacyFilename ~= nil and legacyFilename ~= filename and fileExists(legacyFilename) then
-            filename = legacyFilename
-            loadedFromLegacy = true
-            FarmIconColor:debugPrint(string.format("[%s] Savegame data primary file missing, loading legacy file: %s", self.MOD_NAME, tostring(legacyFilename)))
-        else
-            if not self.savegameDataLoadAttempted then
-                self.savegameDataLoadAttempted = true
-                FarmIconColor:debugPrint(string.format("[%s] No savegame data file yet: %s", self.MOD_NAME, tostring(primaryFilename)))
-            end
-
-            self.savegameDataLoaded = true
-            return false
-        end
-    end
-
+function FarmIconColor:readFarmVisualsFromXml(filename)
     local xmlFile = loadXMLFile("farmIconColorSavegame", filename)
 
     if xmlFile == nil or xmlFile == 0 then
-        if not self.savegameDataLoadAttempted then
-            self.savegameDataLoadAttempted = true
-            FarmIconColor:debugPrint(string.format("[%s] Savegame data not loaded yet: %s", self.MOD_NAME, tostring(filename)))
-        end
+        return nil
+    end
 
-        return false
+    if getXMLBool(xmlFile, "farmIconColor#migrated") == true then
+        delete(xmlFile)
+        return nil
     end
 
     local count = 0
@@ -872,10 +844,50 @@ function FarmIconColor:tryLoadSavegameData()
     end
 
     delete(xmlFile)
-    self.savegameDataLoaded = true
-    self.savegameDataLoadAttempted = true
 
-    FarmIconColor:debugPrint(string.format("[%s] Savegame data loaded from %s entries=%s", self.MOD_NAME, tostring(filename), tostring(count)))
+    return count
+end
+
+function FarmIconColor:tryLoadSavegameData()
+    if self.savegameDataLoaded == true then
+        return true
+    end
+
+    self.savegameDataLoaded = true
+
+    if not self:isAuthoritativeInstance() then
+        FarmIconColor:debugPrint(string.format("[%s] Multiplayer client: waiting for server sync", self.MOD_NAME))
+        return false
+    end
+
+    if not self:isExistingSavegame() then
+        FarmIconColor:debugPrint(string.format("[%s] New savegame: no farm visuals to load", self.MOD_NAME))
+        return false
+    end
+
+    local loadedCount = nil
+    local primaryFilename = self:joinPath(self:getSavegameDirectoryForData(), self.SAVE_FILE_NAME)
+
+    if fileExists(primaryFilename) then
+        loadedCount = self:readFarmVisualsFromXml(primaryFilename)
+    else
+        local devFilename = self:getDevModSettingsDataFilename()
+
+        if devFilename ~= nil and fileExists(devFilename) then
+            loadedCount = self:readFarmVisualsFromXml(devFilename)
+
+            if loadedCount ~= nil then
+                -- Marked as migrated after the next successful game save.
+                self.pendingDevDataMigrationFilename = devFilename
+            end
+        end
+    end
+
+    if loadedCount == nil then
+        return false
+    end
+
+    FarmIconColor:debugPrint(string.format("[%s] Farm visuals loaded entries=%s", self.MOD_NAME, tostring(loadedCount)))
 
     self.runtimeFarmGameColorAppliedSignatures = {}
     self.forceSavedFarmColorSyncTime = 10000
@@ -883,54 +895,37 @@ function FarmIconColor:tryLoadSavegameData()
         self:forceApplyAllSavedFarmVisualColors("savegame data loaded")
     end)
 
-    if loadedFromLegacy then
-        self:saveSavegameData("migrate legacy savegame data to modSettings")
+    return true
+end
+
+-- Called on every change: data is kept in memory and written with the next game save.
+function FarmIconColor:saveSavegameData(source)
+    if not self:isAuthoritativeInstance() then
+        return false
     end
+
+    self.savegameDataDirty = true
 
     return true
 end
 
-function FarmIconColor:saveSavegameData(source)
-    if not self:isAuthoritativeInstance() then
-        if not self.clientLocalSavegameSaveSkipLogged then
-            self.clientLocalSavegameSaveSkipLogged = true
-            FarmIconColor:debugPrint(string.format("[%s] Multiplayer client: local savegame save skipped (%s)", self.MOD_NAME, tostring(source)))
-        end
-
-        return false
-    end
-
-    local filename = self:getSavegameDataFilename()
-
-    if filename == nil then
-        FarmIconColor:debugPrint(string.format("[%s] Savegame data save skipped: no savegame directory (%s)", self.MOD_NAME, tostring(source)))
-        return false
-    end
-
+function FarmIconColor:writeFarmVisualsToXml(filename)
     local xmlFile = createXMLFile("farmIconColorSavegame", filename, "farmIconColor")
 
     if xmlFile == nil or xmlFile == 0 then
-        FarmIconColor:debugPrint(string.format("[%s] Savegame data save failed: %s (%s)", self.MOD_NAME, tostring(filename), tostring(source)))
         return false
     end
 
     local farmKeys = {}
     local seen = {}
 
-    if type(self.runtimeFarmColors) == "table" then
-        for farmId, _ in pairs(self.runtimeFarmColors) do
-            if not seen[tostring(farmId)] then
-                table.insert(farmKeys, tostring(farmId))
-                seen[tostring(farmId)] = true
-            end
-        end
-    end
-
-    if type(self.runtimeFarmLogos) == "table" then
-        for farmId, _ in pairs(self.runtimeFarmLogos) do
-            if not seen[tostring(farmId)] then
-                table.insert(farmKeys, tostring(farmId))
-                seen[tostring(farmId)] = true
+    for _, source in ipairs({self.runtimeFarmColors, self.runtimeFarmLogos}) do
+        if type(source) == "table" then
+            for farmId, _ in pairs(source) do
+                if not seen[tostring(farmId)] then
+                    table.insert(farmKeys, tostring(farmId))
+                    seen[tostring(farmId)] = true
+                end
             end
         end
     end
@@ -939,12 +934,14 @@ function FarmIconColor:saveSavegameData(source)
         return (tonumber(a) or 0) < (tonumber(b) or 0)
     end)
 
+    setXMLInt(xmlFile, "farmIconColor#version", 1)
+
     for index, farmId in ipairs(farmKeys) do
         local key = string.format("farmIconColor.farm(%d)", index - 1)
-        local color = type(self.runtimeFarmColors) == "table" and self.runtimeFarmColors[tostring(farmId)] or nil
-        local logo = type(self.runtimeFarmLogos) == "table" and self.runtimeFarmLogos[tostring(farmId)] or nil
+        local color = type(self.runtimeFarmColors) == "table" and self.runtimeFarmColors[farmId] or nil
+        local logo = type(self.runtimeFarmLogos) == "table" and self.runtimeFarmLogos[farmId] or nil
 
-        setXMLString(xmlFile, key .. "#id", tostring(farmId))
+        setXMLString(xmlFile, key .. "#id", farmId)
 
         if color ~= nil then
             setXMLString(xmlFile, key .. "#color", self:colorToRgbaText(color) or "")
@@ -958,9 +955,39 @@ function FarmIconColor:saveSavegameData(source)
     saveXMLFile(xmlFile)
     delete(xmlFile)
 
-    FarmIconColor:debugPrint(string.format("[%s] Savegame data saved from %s to %s entries=%s", self.MOD_NAME, tostring(source), tostring(filename), tostring(#farmKeys)))
-
     return true
+end
+
+-- Hooked after FSCareerMissionInfo:saveToXMLFile(): the game is writing its savegame
+-- in missionInfo.savegameDirectory, so our file is saved, moved and backed up with it.
+function FarmIconColor:onGameSaved(missionInfo)
+    if self.runtimeFarmColors == nil or not self:isAuthoritativeInstance() then
+        return
+    end
+
+    if type(missionInfo) ~= "table" or missionInfo.savegameDirectory == nil then
+        return
+    end
+
+    local filename = self:joinPath(tostring(missionInfo.savegameDirectory), self.SAVE_FILE_NAME)
+
+    if not self:writeFarmVisualsToXml(filename) then
+        return
+    end
+
+    self.savegameDataDirty = false
+
+    if self.pendingDevDataMigrationFilename ~= nil then
+        local xmlFile = createXMLFile("farmIconColorMigrated", self.pendingDevDataMigrationFilename, "farmIconColor")
+
+        if xmlFile ~= nil and xmlFile ~= 0 then
+            setXMLBool(xmlFile, "farmIconColor#migrated", true)
+            saveXMLFile(xmlFile)
+            delete(xmlFile)
+        end
+
+        self.pendingDevDataMigrationFilename = nil
+    end
 end
 
 function FarmIconColor:getCurrentFarmId()
@@ -1800,7 +1827,7 @@ function FarmIconColor:checkPrototypeLogoSelectorHotkeys()
         return
     end
 
-    if not self:hasVisibleFarmEditDialog() or g_gui.currentListener == ColorPickerDialog then
+    if not self:hasVisibleFarmEditDialog() or g_gui.currentListener == ColorPickerDialog or self:isTextInputActive() then
         self.logoSelectorPreviousKeyDown = false
         self.logoSelectorNextKeyDown = false
         return
@@ -4571,6 +4598,117 @@ function FarmIconColor:isCurrentUserFarmIconAdmin()
     return successAdmin and isAdmin == true
 end
 
+-- Server side: may the user behind this connection change this farm's visuals?
+function FarmIconColor:isConnectionAllowedToEditFarm(connection, farmId)
+    local mission = g_currentMission
+    local userManager = mission ~= nil and mission.userManager or nil
+
+    if connection == nil or type(userManager) ~= "table" or userManager.getUserByConnection == nil then
+        return false
+    end
+
+    local okUser, user = pcall(function()
+        return userManager:getUserByConnection(connection)
+    end)
+
+    if not okUser or type(user) ~= "table" then
+        return false
+    end
+
+    local okMaster, isMaster = pcall(function()
+        return user:getIsMasterUser()
+    end)
+
+    if okMaster and isMaster == true then
+        return true
+    end
+
+    if g_farmManager == nil or g_farmManager.getFarmByUserId == nil or user.getId == nil then
+        return false
+    end
+
+    local okFarm, farm = pcall(function()
+        return g_farmManager:getFarmByUserId(user:getId())
+    end)
+
+    return okFarm and type(farm) == "table" and tonumber(farm.farmId) == tonumber(farmId)
+end
+
+-- Server side: resend the authoritative visuals of one farm to one client.
+function FarmIconColor:sendFarmVisualToConnection(connection, farmId)
+    if connection == nil or connection.sendEvent == nil or not self:isValidFarmId(farmId) then
+        return
+    end
+
+    local idKey = tostring(farmId)
+    local color = type(self.runtimeFarmColors) == "table" and self.runtimeFarmColors[idKey] or nil
+    local logoName = type(self.runtimeFarmLogos) == "table" and self.runtimeFarmLogos[idKey] or nil
+
+    if color == nil and logoName == nil then
+        return
+    end
+
+    connection:sendEvent(FarmIconColorSyncEvent.new(idKey, self:colorToRgbaText(color) or "", logoName or ""))
+end
+
+-- True while the player is typing (farm name / password field, on-screen keyboard dialog).
+function FarmIconColor:isTextInputActive()
+    if g_gui ~= nil and g_gui.currentListener ~= nil and TextInputDialog ~= nil then
+        local okIsa, isTextDialog = pcall(function()
+            return g_gui.currentListener.isa ~= nil and g_gui.currentListener:isa(TextInputDialog)
+        end)
+
+        if okIsa and isTextDialog == true then
+            return true
+        end
+    end
+
+    if FocusManager ~= nil and FocusManager.getFocusedElement ~= nil then
+        local okFocus, focused = pcall(function()
+            return FocusManager:getFocusedElement()
+        end)
+
+        if okFocus and type(focused) == "table" and focused.isCapturingInput == true then
+            return true
+        end
+    end
+
+    if g_gui ~= nil and type(g_gui.dialogs) == "table" then
+        for _, dialog in pairs(g_gui.dialogs) do
+            if self:isDialogVisible(dialog)
+                and (self:findCapturingTextInput(dialog, 0, 10, {count = 400}, {})
+                    or self:findCapturingTextInput(dialog.target, 0, 10, {count = 400}, {})) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+function FarmIconColor:findCapturingTextInput(element, depth, maxDepth, budget, visited)
+    if type(element) ~= "table" or depth > maxDepth or visited[element] or budget.count <= 0 then
+        return false
+    end
+
+    visited[element] = true
+    budget.count = budget.count - 1
+
+    if element.isCapturingInput == true then
+        return true
+    end
+
+    if type(element.elements) == "table" then
+        for _, child in ipairs(element.elements) do
+            if self:findCapturingTextInput(child, depth + 1, maxDepth, budget, visited) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 function FarmIconColor:getInsertKeyCode()
     return self:getLogoSelectorKeyCode({
         "KEY_insert",
@@ -4585,6 +4723,7 @@ function FarmIconColor:checkCustomLogoImportHotkey()
         and g_gui ~= nil
         and g_gui.currentListener ~= ColorPickerDialog
         and self:isCurrentUserFarmIconAdmin()
+        and not self:isTextInputActive()
 
     if not canImport then
         if Input ~= nil and Input.isKeyPressed ~= nil and insertKey ~= nil then
@@ -7422,17 +7561,34 @@ function FarmIconColorSyncEvent:writeStream(streamId, connection)
     streamWriteString(streamId, tostring(self.logoName or ""))
 end
 
+FarmIconColorSyncEvent.MAX_TEXT_LENGTH = 64
+
 function FarmIconColorSyncEvent:run(connection)
-    if FarmIconColor ~= nil then
-        local farmId = tonumber(self.farmId) or self.farmId
-        FarmIconColor:applyNetworkFarmVisual(farmId, self.colorText, self.logoName, "network event")
+    if FarmIconColor == nil then
+        return
+    end
 
+    local farmId = tonumber(self.farmId)
+    local receivedFromClient = connection ~= nil and connection.getIsServer ~= nil and not connection:getIsServer() and g_server ~= nil
 
+    if receivedFromClient then
+        -- The server never trusts a client: only the master user (admin) or a member
+        -- of the farm may change its color/logo. Anything else is ignored and the
+        -- sender gets the real values back.
+        local isValid = FarmIconColor:isValidFarmId(farmId)
+            and string.len(self.colorText or "") <= FarmIconColorSyncEvent.MAX_TEXT_LENGTH
+            and string.len(self.logoName or "") <= FarmIconColorSyncEvent.MAX_TEXT_LENGTH
 
-
-        if connection ~= nil and connection.getIsServer ~= nil and not connection:getIsServer() and g_server ~= nil then
-            g_server:broadcastEvent(FarmIconColorSyncEvent.new(self.farmId, self.colorText, self.logoName), nil, connection, nil)
+        if not isValid or not FarmIconColor:isConnectionAllowedToEditFarm(connection, farmId) then
+            FarmIconColor:sendFarmVisualToConnection(connection, farmId)
+            return
         end
+    end
+
+    FarmIconColor:applyNetworkFarmVisual(farmId or self.farmId, self.colorText, self.logoName, "network event")
+
+    if receivedFromClient then
+        g_server:broadcastEvent(FarmIconColorSyncEvent.new(self.farmId, self.colorText, self.logoName), nil, connection, nil)
     end
 end
 
@@ -7441,5 +7597,15 @@ end
 -- Do not mirror this folder into savegameX/tempsavegame: dedicated-server providers
 -- can filter arbitrary nested savegame folders. Imported logo persistence is handled
 -- separately through the mod-owned save data channel.
+
+-- Write farm visuals into the savegame whenever the game saves (singleplayer,
+-- listen server and dedicated server).
+if FSCareerMissionInfo ~= nil and FSCareerMissionInfo.saveToXMLFile ~= nil and Utils ~= nil and Utils.appendedFunction ~= nil then
+    FSCareerMissionInfo.saveToXMLFile = Utils.appendedFunction(FSCareerMissionInfo.saveToXMLFile, function(missionInfo)
+        FarmIconColor:safeCall("onGameSaved", function()
+            FarmIconColor:onGameSaved(missionInfo)
+        end)
+    end)
+end
 
 addModEventListener(FarmIconColor)

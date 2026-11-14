@@ -19,7 +19,7 @@ Elle faisait aussi des `print()` dans log.txt, ce que GIANTS refuse sur ModHub.
 **Correction :** la fonction et son appel ont été supprimés, et les logos reprennent le DDS d'origine dans `customLogos/`.
 Le fichier `modSettings/FS25_farmIconColor/generatedLogos/` peut être supprimé à la main, car il n'est plus utilisé.
 
-## 🔴 2. Le serveur accepte n'importe quel changement de n'importe quel client
+## ✅ 2. (corrigé) Le serveur accepte n'importe quel changement de n'importe quel client
 
 `FarmIconColorSyncEvent:run()` applique, sauvegarde et rediffuse l'événement **sans vérifier qui l'envoie**.
 Un client modifié ou malveillant peut changer la couleur ou le logo de **toutes** les fermes.
@@ -29,7 +29,7 @@ Côté client, seul le menu vanilla limite l'accès, et le serveur ne vérifie r
 (`g_currentMission.userManager:getUserByConnection(connection)`). Accepter seulement s'il est
 `getIsMasterUser()` ou gestionnaire de cette ferme. Ignorer aussi les `farmId` invalides et les chaînes trop longues.
 
-## 🔴 3. Les réglages ne sont pas dans la sauvegarde
+## ✅ 3. (corrigé) Les réglages ne sont pas dans la sauvegarde
 
 Les couleurs et logos sont enregistrés dans `modSettings/FS25_farmIconColor/savegame<N>.xml`, avec une clé basée sur le **numéro d'emplacement**. Conséquences :
 - une **nouvelle partie** créée dans le même emplacement reprend les couleurs et logos de l'ancienne ;
@@ -50,7 +50,7 @@ Il faut lire ce fichier au chargement et garder l'ancien fichier modSettings uni
 **Correctif proposé :** envoyer l'état complet au joueur qui se connecte via `FSBaseMission.sendInitialClientState`.
 Côté client, ignorer un événement identique au dernier reçu, puis supprimer l'envoi périodique ou l'espacer fortement.
 
-## 🟠 5. Touches lues « en brut » au lieu des actions FS25
+## ✅ 5. (corrigé pour la saisie de texte) Touches lues « en brut » au lieu des actions FS25
 
 F9, INSERT et Pavé num. 4/6 sont lus avec `Input.isKeyPressed()` dans `update()`. Conséquences :
 - les touches déclarées dans `modDesc.xml` ne peuvent pas être réassignées, car le code ne les utilise pas ;
