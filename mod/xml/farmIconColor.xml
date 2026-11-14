@@ -26,39 +26,39 @@
             le deuxième est affiché en deuxième, etc.
             Pour changer l'ordre, déplace simplement les lignes <logo>.
         -->
-        <logo name="chicken" texture="textures/chicken.dds" />
-        <logo name="sheep" texture="textures/sheep.dds" />
-        <logo name="cow" texture="textures/cow.dds" />
-        <logo name="buffalo" texture="textures/buffalo.dds" />
-        <logo name="horse" texture="textures/horse.dds" />
-        <logo name="pig" texture="textures/pig.dds" />
-        <logo name="chainsaw" texture="textures/chainsaw.dds" />
-        <logo name="barn" texture="textures/barn.dds" />
-        <logo name="tractor" texture="textures/tractor.dds" />
-        <logo name="vine" texture="textures/vine.dds" />
-        <logo name="carrot" texture="textures/carrot.dds" />
-        <logo name="square_ball" texture="textures/square_ball.dds" />
-        <logo name="barrier" texture="textures/barrier.dds" />
-        <logo name="round_ball" texture="textures/round_ball.dds" />
-        <logo name="bee" texture="textures/bee.dds" />
-        <logo name="boot" texture="textures/boot.dds" />
-        <logo name="watering_can" texture="textures/watering_can.dds" />
-        <logo name="wheelbarrow" texture="textures/wheelbarrow.dds" />
-        <logo name="mechanical_shovel" texture="textures/mechanical_shovel.dds" />
-        <logo name="log" texture="textures/log.dds" />
-        <logo name="crate" texture="textures/crate.dds" />
-        <logo name="tight" texture="textures/tight.dds" />
-        <logo name="plow" texture="textures/plow.dds" />
-        <logo name="combine" texture="textures/combine.dds" />
-        <logo name="trailer" texture="textures/trailer.dds" />
-        <logo name="warehouse" texture="textures/warehouse.dds" />
-        <logo name="honey" texture="textures/honey.dds" />
-        <logo name="windmill" texture="textures/windmill.dds" />
-        <logo name="cotton" texture="textures/cotton.dds" />
-        <logo name="olive" texture="textures/olive.dds" />
-        <logo name="barrel" texture="textures/barrel.dds" />
-        <logo name="basket" texture="textures/basket.dds" />
-        <logo name="forklift" texture="textures/forklift.dds" />
-        <logo name="milk" texture="textures/milk.dds" />
+        <logo name="chicken" texture="textures/chicken.dds" l10n="farmIconColor_logo_chicken" />
+        <logo name="sheep" texture="textures/sheep.dds" l10n="farmIconColor_logo_sheep" />
+        <logo name="cow" texture="textures/cow.dds" l10n="farmIconColor_logo_cow" />
+        <logo name="buffalo" texture="textures/buffalo.dds" l10n="farmIconColor_logo_buffalo" />
+        <logo name="horse" texture="textures/horse.dds" l10n="farmIconColor_logo_horse" />
+        <logo name="pig" texture="textures/pig.dds" l10n="farmIconColor_logo_pig" />
+        <logo name="chainsaw" texture="textures/chainsaw.dds" l10n="farmIconColor_logo_chainsaw" />
+        <logo name="barn" texture="textures/barn.dds" l10n="farmIconColor_logo_barn" />
+        <logo name="tractor" texture="textures/tractor.dds" l10n="farmIconColor_logo_tractor" />
+        <logo name="vine" texture="textures/vine.dds" l10n="farmIconColor_logo_vine" />
+        <logo name="carrot" texture="textures/carrot.dds" l10n="farmIconColor_logo_carrot" />
+        <logo name="square_ball" texture="textures/square_ball.dds" l10n="farmIconColor_logo_square_ball" />
+        <logo name="barrier" texture="textures/barrier.dds" l10n="farmIconColor_logo_barrier" />
+        <logo name="round_ball" texture="textures/round_ball.dds" l10n="farmIconColor_logo_round_ball" />
+        <logo name="bee" texture="textures/bee.dds" l10n="farmIconColor_logo_bee" />
+        <logo name="boot" texture="textures/boot.dds" l10n="farmIconColor_logo_boot" />
+        <logo name="watering_can" texture="textures/watering_can.dds" l10n="farmIconColor_logo_watering_can" />
+        <logo name="wheelbarrow" texture="textures/wheelbarrow.dds" l10n="farmIconColor_logo_wheelbarrow" />
+        <logo name="mechanical_shovel" texture="textures/mechanical_shovel.dds" l10n="farmIconColor_logo_mechanical_shovel" />
+        <logo name="log" texture="textures/log.dds" l10n="farmIconColor_logo_log" />
+        <logo name="crate" texture="textures/crate.dds" l10n="farmIconColor_logo_crate" />
+        <logo name="tight" texture="textures/tight.dds" l10n="farmIconColor_logo_tight" />
+        <logo name="plow" texture="textures/plow.dds" l10n="farmIconColor_logo_plow" />
+        <logo name="combine" texture="textures/combine.dds" l10n="farmIconColor_logo_combine" />
+        <logo name="trailer" texture="textures/trailer.dds" l10n="farmIconColor_logo_trailer" />
+        <logo name="warehouse" texture="textures/warehouse.dds" l10n="farmIconColor_logo_warehouse" />
+        <logo name="honey" texture="textures/honey.dds" l10n="farmIconColor_logo_honey" />
+        <logo name="windmill" texture="textures/windmill.dds" l10n="farmIconColor_logo_windmill" />
+        <logo name="cotton" texture="textures/cotton.dds" l10n="farmIconColor_logo_cotton" />
+        <logo name="olive" texture="textures/olive.dds" l10n="farmIconColor_logo_olive" />
+        <logo name="barrel" texture="textures/barrel.dds" l10n="farmIconColor_logo_barrel" />
+        <logo name="basket" texture="textures/basket.dds" l10n="farmIconColor_logo_basket" />
+        <logo name="forklift" texture="textures/forklift.dds" l10n="farmIconColor_logo_forklift" />
+        <logo name="milk" texture="textures/milk.dds" l10n="farmIconColor_logo_milk" />
     </logos>
 </farmIconColor>

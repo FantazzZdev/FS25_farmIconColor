@@ -13,6 +13,7 @@ mod/                    contenu EXACT du ZIP (modDesc.xml a la racine)
   modDesc.xml
   scripts/farmIconColor.lua      logique principale (couleurs, logos, menus, sync couleur/logo)
   scripts/customLogoSync.lua     partage des logos personnalises (catalogue serveur + transfert reseau)
+  scripts/logoPicker.lua         grille de selection des logos (bouton Logos / touche L)
   xml/farmIconColor.xml  liste/ordre des logos integres
   textures/*.dds         logos integres (256x256, blanc, fond transparent, DXT5)
 docs/

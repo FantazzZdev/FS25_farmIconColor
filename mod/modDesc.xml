@@ -24,7 +24,7 @@ Features:
 
 Inputs:
 - In singleplayer: press F9 to open the farm color customization window.
-- In the farm creation or editing menu: use the left/right arrows to change the farm icon.
+- In the farm creation or editing menu: click Logos (L) or the logo itself to pick a logo from a grid; the left/right arrows still work.
 - In the farm creation or editing menu (admin): press INSERT or click Import to import custom logos.]]>
         </en>
         <fr>
@@ -44,7 +44,7 @@ Fonctionnalités :
 
 Entrées :
 - En solo : appuyez sur F9 pour ouvrir la fenêtre de personnalisation de la couleur de ferme.
-- Dans le menu de création ou de modification de ferme : utilisez les flèches gauche/droite pour changer de logo.
+- Dans le menu de création ou de modification de ferme : cliquez sur Logos (L) ou sur le logo pour le choisir dans une grille ; les flèches gauche/droite fonctionnent toujours.
 - Dans le menu de création ou de modification de ferme (admin) : appuyez sur INSER ou cliquez sur Importer pour importer des logos personnalisés.]]>
         </fr>
         <de>
@@ -64,7 +64,7 @@ Funktionen:
 
 Eingaben:
 - Im Einzelspieler-Modus: Druecke F9, um das Fenster zur Anpassung der Hoffarbe zu oeffnen.
-- Im Menue zum Erstellen oder Bearbeiten eines Hofes: Verwende die Pfeile nach links/rechts, um das Hofsymbol zu aendern.
+- Im Menue zum Erstellen oder Bearbeiten eines Hofes: Klicke auf Logos (L) oder auf das Logo, um es aus einem Raster auszuwaehlen; die Pfeile links/rechts funktionieren weiterhin.
 - Im Menue zum Erstellen oder Bearbeiten eines Hofes (Admin): Druecke EINFG oder klicke auf Importieren, um eigene Logos zu importieren.]]>
         </de>
     </description>
@@ -105,6 +105,201 @@ Eingaben:
             <fr>Nombre maximum de logos partagés atteint (%s)</fr>
             <de>Maximale Anzahl geteilter Logos erreicht (%s)</de>
         </text>
+        <text name="farmIconColor_logo_chicken">
+            <en>Chicken</en>
+            <fr>Poule</fr>
+            <de>Huhn</de>
+        </text>
+        <text name="farmIconColor_logo_sheep">
+            <en>Sheep</en>
+            <fr>Mouton</fr>
+            <de>Schaf</de>
+        </text>
+        <text name="farmIconColor_logo_cow">
+            <en>Cow</en>
+            <fr>Vache</fr>
+            <de>Kuh</de>
+        </text>
+        <text name="farmIconColor_logo_buffalo">
+            <en>Buffalo</en>
+            <fr>Buffle</fr>
+            <de>Büffel</de>
+        </text>
+        <text name="farmIconColor_logo_horse">
+            <en>Horse</en>
+            <fr>Cheval</fr>
+            <de>Pferd</de>
+        </text>
+        <text name="farmIconColor_logo_pig">
+            <en>Pig</en>
+            <fr>Cochon</fr>
+            <de>Schwein</de>
+        </text>
+        <text name="farmIconColor_logo_chainsaw">
+            <en>Chainsaw</en>
+            <fr>Tronçonneuse</fr>
+            <de>Kettensäge</de>
+        </text>
+        <text name="farmIconColor_logo_barn">
+            <en>Barn</en>
+            <fr>Grange</fr>
+            <de>Scheune</de>
+        </text>
+        <text name="farmIconColor_logo_tractor">
+            <en>Tractor</en>
+            <fr>Tracteur</fr>
+            <de>Traktor</de>
+        </text>
+        <text name="farmIconColor_logo_vine">
+            <en>Vine</en>
+            <fr>Vigne</fr>
+            <de>Weinrebe</de>
+        </text>
+        <text name="farmIconColor_logo_carrot">
+            <en>Carrot</en>
+            <fr>Carotte</fr>
+            <de>Karotte</de>
+        </text>
+        <text name="farmIconColor_logo_square_ball">
+            <en>Square bale</en>
+            <fr>Balle carrée</fr>
+            <de>Quaderballen</de>
+        </text>
+        <text name="farmIconColor_logo_barrier">
+            <en>Fence</en>
+            <fr>Barrière</fr>
+            <de>Zaun</de>
+        </text>
+        <text name="farmIconColor_logo_round_ball">
+            <en>Round bale</en>
+            <fr>Balle ronde</fr>
+            <de>Rundballen</de>
+        </text>
+        <text name="farmIconColor_logo_bee">
+            <en>Bee</en>
+            <fr>Abeille</fr>
+            <de>Biene</de>
+        </text>
+        <text name="farmIconColor_logo_boot">
+            <en>Boot</en>
+            <fr>Botte</fr>
+            <de>Stiefel</de>
+        </text>
+        <text name="farmIconColor_logo_watering_can">
+            <en>Watering can</en>
+            <fr>Arrosoir</fr>
+            <de>Gießkanne</de>
+        </text>
+        <text name="farmIconColor_logo_wheelbarrow">
+            <en>Wheelbarrow</en>
+            <fr>Brouette</fr>
+            <de>Schubkarre</de>
+        </text>
+        <text name="farmIconColor_logo_mechanical_shovel">
+            <en>Wheel loader</en>
+            <fr>Chargeuse</fr>
+            <de>Radlader</de>
+        </text>
+        <text name="farmIconColor_logo_log">
+            <en>Log</en>
+            <fr>Bûche</fr>
+            <de>Baumstamm</de>
+        </text>
+        <text name="farmIconColor_logo_crate">
+            <en>Crate</en>
+            <fr>Caisse</fr>
+            <de>Kiste</de>
+        </text>
+        <text name="farmIconColor_logo_tight">
+            <en>Silage bale</en>
+            <fr>Balle enrubannée</fr>
+            <de>Silageballen</de>
+        </text>
+        <text name="farmIconColor_logo_plow">
+            <en>Plough</en>
+            <fr>Charrue</fr>
+            <de>Pflug</de>
+        </text>
+        <text name="farmIconColor_logo_combine">
+            <en>Combine</en>
+            <fr>Moissonneuse</fr>
+            <de>Mähdrescher</de>
+        </text>
+        <text name="farmIconColor_logo_trailer">
+            <en>Trailer</en>
+            <fr>Remorque</fr>
+            <de>Anhänger</de>
+        </text>
+        <text name="farmIconColor_logo_warehouse">
+            <en>Warehouse</en>
+            <fr>Hangar</fr>
+            <de>Lagerhalle</de>
+        </text>
+        <text name="farmIconColor_logo_honey">
+            <en>Honey</en>
+            <fr>Miel</fr>
+            <de>Honig</de>
+        </text>
+        <text name="farmIconColor_logo_windmill">
+            <en>Windmill</en>
+            <fr>Éolienne</fr>
+            <de>Windrad</de>
+        </text>
+        <text name="farmIconColor_logo_cotton">
+            <en>Cotton</en>
+            <fr>Coton</fr>
+            <de>Baumwolle</de>
+        </text>
+        <text name="farmIconColor_logo_olive">
+            <en>Olive</en>
+            <fr>Olive</fr>
+            <de>Olive</de>
+        </text>
+        <text name="farmIconColor_logo_barrel">
+            <en>Barrel</en>
+            <fr>Tonneau</fr>
+            <de>Fass</de>
+        </text>
+        <text name="farmIconColor_logo_basket">
+            <en>Basket</en>
+            <fr>Panier</fr>
+            <de>Korb</de>
+        </text>
+        <text name="farmIconColor_logo_forklift">
+            <en>Forklift</en>
+            <fr>Chariot élévateur</fr>
+            <de>Gabelstapler</de>
+        </text>
+        <text name="farmIconColor_logo_milk">
+            <en>Milk</en>
+            <fr>Lait</fr>
+            <de>Milch</de>
+        </text>
+        <text name="input_FARMICONCOLOR_OPEN_LOGO_PICKER">
+            <en>Logos</en>
+            <fr>Logos</fr>
+            <de>Logos</de>
+        </text>
+        <text name="farmIconColor_pickerTitle">
+            <en>Select a logo</en>
+            <fr>Sélectionner un logo</fr>
+            <de>Logo auswählen</de>
+        </text>
+        <text name="farmIconColor_pickerHint">
+            <en>Wheel: scroll - Double-click: confirm</en>
+            <fr>Molette : défiler - Double-clic : valider</fr>
+            <de>Mausrad: scrollen - Doppelklick: bestätigen</de>
+        </text>
+        <text name="farmIconColor_pickerConfirm">
+            <en>Confirm</en>
+            <fr>Valider</fr>
+            <de>Bestätigen</de>
+        </text>
+        <text name="farmIconColor_pickerCancel">
+            <en>Cancel</en>
+            <fr>Annuler</fr>
+            <de>Abbrechen</de>
+        </text>
         <text name="input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO">
             <en>Import</en>
             <fr>Importer</fr>
@@ -115,6 +310,7 @@ Eingaben:
     <actions>
         <action name="FARMICONCOLOR_OPEN_SOLO_PICKER" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
         <action name="FARMICONCOLOR_IMPORT_CUSTOM_LOGO" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
+        <action name="FARMICONCOLOR_OPEN_LOGO_PICKER" axisType="HALF" displayCategory="PLAYER_INTERACTIVE" />
     </actions>
 
     <inputBinding>
@@ -124,10 +320,14 @@ Eingaben:
         <actionBinding action="FARMICONCOLOR_IMPORT_CUSTOM_LOGO">
             <binding device="KB_MOUSE_DEFAULT" input="KEY_insert" />
         </actionBinding>
+        <actionBinding action="FARMICONCOLOR_OPEN_LOGO_PICKER">
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_l" />
+        </actionBinding>
     </inputBinding>
 
     <extraSourceFiles>
         <sourceFile filename="scripts/farmIconColor.lua" />
         <sourceFile filename="scripts/customLogoSync.lua" />
+        <sourceFile filename="scripts/logoPicker.lua" />
     </extraSourceFiles>
 </modDesc>
