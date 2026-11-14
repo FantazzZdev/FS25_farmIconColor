@@ -11,7 +11,8 @@ Mod Farming Simulator 25 : couleur et logo personnalises pour chaque ferme (menu
 ```
 mod/                    contenu EXACT du ZIP (modDesc.xml a la racine)
   modDesc.xml
-  scripts/farmIconColor.lua
+  scripts/farmIconColor.lua      logique principale (couleurs, logos, menus, sync couleur/logo)
+  scripts/customLogoSync.lua     partage des logos personnalises (catalogue serveur + transfert reseau)
   xml/farmIconColor.xml  liste/ordre des logos integres
   textures/*.dds         logos integres (256x256, blanc, fond transparent, DXT5)
 docs/
@@ -19,7 +20,8 @@ docs/
   ARCHITECTURE-logos-serveur.md  plan de la synchro des logos personnalises
   HANDOFF.txt    passation d'origine (historique des tests)
 tools/
-  build.ps1 / build.sh   fabrique dist/FS25_farmIconColor.zip
+  build.ps1 / build.sh   fabrique dist/FS25_farmIconColor.zip (+ dist/convertisseur-logos.html avec build.sh)
+  logo-converter/        convertisseur image -> paquet logo .xml (page web hors ligne)
 .github/                 CI (verif syntaxe + ZIP telechargeable), modeles d'issue/PR
 ```
 
@@ -43,11 +45,9 @@ Chaque push sur GitHub construit aussi le ZIP automatiquement (onglet **Actions*
 
 ## Logos personnalises (version 1.1)
 
-Deposer des `.dds` (256x256, BC3/DXT5 avec alpha, blanc pur pour la recoloration) dans :
+1. Ouvrir le convertisseur (`dist/convertisseur-logos.html` apres un build, ou `tools/logo-converter/index.html`), y deposer une image (PNG, JPG, SVG, DDS) et telecharger le `.xml`.
+2. Placer le `.xml` dans `Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/`.
+3. En jeu, en tant qu'admin, dans la fenetre de modification de ferme : **INSER** ou bouton **Importer**.
 
-```
-Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/
-```
-
-puis, dans la fenetre de modification de ferme, appuyer sur **INSER** ou cliquer **Importer** (admin uniquement).
-Limite actuelle : les autres joueurs doivent posseder le meme fichier. Voir `docs/ARCHITECTURE-logos-serveur.md`.
+Le logo est envoye au serveur, enregistre dans la sauvegarde et transmis a tous les joueurs. Un simple `.dds` depose dans le meme dossier reste utilisable, mais uniquement sur ton PC.
+Details techniques : `docs/ARCHITECTURE-logos-serveur.md`.

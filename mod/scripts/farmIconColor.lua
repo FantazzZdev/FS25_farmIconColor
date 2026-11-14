@@ -413,7 +413,9 @@ function FarmIconColor:ensureCustomLogoReadme(directory)
             "Farm Icon Color - Custom Logos\n" ..
             "================================\n\n" ..
             "This folder is created automatically by Farm Icon Color.\n" ..
-            "Place your personal farm logos (.dds) here.\n\n" ..
+            "Place your personal farm logos here:\n" ..
+            "- .xml logo packages (made with the Farm Icon Color logo converter): shared automatically with every player of the server;\n" ..
+            "- .dds files: visible only on this computer.\n\n" ..
             "Location:\n" ..
             "Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/\n\n" ..
             "Required format:\n" ..

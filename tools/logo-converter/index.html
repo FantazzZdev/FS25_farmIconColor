@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convertisseur de logos</title>
+<style>
+  :root {
+    --bg: #f4f5f1; --panel: #ffffff; --text: #1d211b; --muted: #5d6658; --line: #d9ddd3;
+    --accent: #5b8f12; --accent-text: #ffffff; --ok: #2f7d32; --warn: #a15c00; --err: #b3261e;
+    --check-a: #e4e6e0; --check-b: #f7f8f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161815; --panel: #20231f; --text: #ecefe8; --muted: #a3ab9c; --line: #343930;
+      --accent: #8cc63f; --accent-text: #11140f; --ok: #7bc47f; --warn: #f0b35a; --err: #f2867e;
+      --check-a: #2a2d28; --check-b: #333731;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161815; --panel: #20231f; --text: #ecefe8; --muted: #a3ab9c; --line: #343930;
+    --accent: #8cc63f; --accent-text: #11140f; --ok: #7bc47f; --warn: #f0b35a; --err: #f2867e;
+    --check-a: #2a2d28; --check-b: #333731;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  #drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px 16px; text-align: center;
+          cursor: pointer; transition: border-color .15s, background .15s; }
+  #drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  #drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+  #drop span { color: var(--muted); font-size: 13px; }
+  .preview { width: 256px; max-width: 100%; aspect-ratio: 1; border-radius: 10px; border: 1px solid var(--line);
+             background: repeating-conic-gradient(var(--check-a) 0 25%, var(--check-b) 0 50%) 0 0 / 24px 24px; }
+  .preview canvas { width: 100%; height: 100%; display: block; }
+  label { display: block; font-weight: 600; margin: 16px 0 6px; }
+  input[type=text] { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line);
+                     background: var(--bg); color: var(--text); font: inherit; }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+  .row label { margin: 0; font-weight: 400; }
+  input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 6px; background: none; padding: 2px; }
+  button { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--accent);
+           color: var(--accent-text); font: 600 15px system-ui, sans-serif; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #status { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .err { color: var(--err); }
+  ol { padding-left: 20px; margin: 8px 0 0; } li { margin: 6px 0; }
+  code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 13px; word-break: break-all; }
+  .muted { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Convertisseur de logos – Farm Icon Color</h1>
+  <p class="sub">Transforme une image (PNG, JPG, WEBP, SVG) ou un DDS en logo partageable avec tous les joueurs du serveur.</p>
+
+  <div class="grid">
+    <div>
+      <div id="drop" class="panel" tabindex="0">
+        <strong>Dépose ton image ici</strong>
+        <span>ou clique pour choisir un fichier</span>
+        <input id="file" type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.dds,image/*" hidden>
+      </div>
+      <div class="preview" style="margin-top:16px"><canvas id="canvas" width="256" height="256"></canvas></div>
+      <div class="row">
+        <input id="tint" type="color" value="#3da9fc">
+        <label for="tint">Aperçu avec la couleur de ferme</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <label for="name">Nom du logo</label>
+      <input id="name" type="text" maxlength="48" placeholder="Ex. : TerraPro">
+      <div class="row">
+        <input id="white" type="checkbox">
+        <label for="white">Rendre le logo blanc (il prendra la couleur de la ferme)</label>
+      </div>
+      <div id="status" class="muted">Aucun fichier chargé.</div>
+      <button id="download" disabled>Télécharger le logo (.xml)</button>
+
+      <label style="margin-top:28px">Ensuite</label>
+      <ol>
+        <li>Place le fichier <code>.xml</code> dans<br><code>Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/</code></li>
+        <li>En jeu (admin), ouvre la modification de ferme et appuie sur <strong>INSER</strong> ou <strong>Importer</strong>.</li>
+        <li>Le logo est envoyé au serveur, enregistré dans la sauvegarde et transmis à tous les joueurs, y compris ceux qui se connectent plus tard.</li>
+      </ol>
+      <p class="muted">Tout se passe dans ton navigateur : aucune image n'est envoyée sur Internet.</p>
+    </div>
+  </div>
+</main>
+
+<script src="dds-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  var core = window.FarmIconColorDds, SIZE = core.LOGO_SIZE;
+  var $ = function (id) { return document.getElementById(id); };
+  var canvas = $("canvas"), ctx = canvas.getContext("2d");
+  var state = null; // { sourceRgba, sourceDds, fileName }
+
+  function setStatus(html, cls) { $("status").className = cls || ""; $("status").innerHTML = html; }
+
+  function hexToRgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+
+  function currentRgba() {
+    if (!state || !state.sourceRgba) return null;
+    return $("white").checked ? core.makeWhite(state.sourceRgba) : state.sourceRgba;
+  }
+
+  // In game the mod multiplies every logo by the farm colour (white logos give the exact colour).
+  function drawPreview() {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    var rgba = currentRgba();
+    if (!rgba) return;
+    var out = new Uint8ClampedArray(rgba), tint = hexToRgb($("tint").value);
+    for (var p = 0; p < out.length; p += 4) {
+      out[p] = out[p] * tint[0] / 255; out[p + 1] = out[p + 1] * tint[1] / 255; out[p + 2] = out[p + 2] * tint[2] / 255;
+    }
+    ctx.putImageData(new ImageData(out, SIZE, SIZE), 0, 0);
+  }
+
+  function describe() {
+    var rgba = currentRgba(), bytes = buildDds();
+    if (!bytes) return;
+    var kind = rgba == null ? "" : core.isTintable(rgba)
+      ? "Logo blanc : il prendra la couleur de la ferme."
+      : "Logo en couleurs : en jeu, la couleur de ferme se mélange à ses couleurs (voir l'aperçu). Coche « Rendre le logo blanc » pour un résultat net.";
+    var origin = state.sourceDds && !$("white").checked ? "DDS d'origine conservé tel quel" : "converti en DDS 256×256 DXT5";
+    setStatus('<span class="ok">✔ Prêt</span> – ' + origin + ", " + Math.round(bytes.length / 1024) + " Ko.<br>" + kind);
+  }
+
+  function buildDds() {
+    if (!state) return null;
+    if (state.sourceDds && !$("white").checked) return state.sourceDds;
+    var rgba = currentRgba();
+    return rgba ? core.encodeDds(rgba, SIZE) : null;
+  }
+
+  function fitImage(img) {
+    var c = document.createElement("canvas"); c.width = SIZE; c.height = SIZE;
+    var g = c.getContext("2d"), w = img.naturalWidth || img.width || SIZE, h = img.naturalHeight || img.height || SIZE;
+    var scale = Math.min(SIZE / w, SIZE / h), dw = w * scale, dh = h * scale;
+    g.imageSmoothingQuality = "high";
+    g.drawImage(img, (SIZE - dw) / 2, (SIZE - dh) / 2, dw, dh);
+    return new Uint8ClampedArray(g.getImageData(0, 0, SIZE, SIZE).data);
+  }
+
+  function resizeRgba(rgba, w, h) {
+    var src = document.createElement("canvas"); src.width = w; src.height = h;
+    src.getContext("2d").putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+    return fitImage(src);
+  }
+
+  function loadFile(file) {
+    if (!file) return;
+    $("name").value = core.sanitizeName(file.name);
+    $("white").checked = false;
+    var isDds = /\.dds$/i.test(file.name);
+    var reader = new FileReader();
+    reader.onerror = function () { setStatus("Impossible de lire ce fichier.", "err"); };
+    if (isDds) {
+      reader.onload = function () {
+        var bytes = new Uint8Array(reader.result), header = core.parseDdsHeader(bytes);
+        if (!header) { state = null; $("download").disabled = true; drawPreview(); return setStatus("Ce fichier n'est pas un DDS valide.", "err"); }
+        if (bytes.length > core.MAX_BYTES) { state = null; $("download").disabled = true; drawPreview(); return setStatus("DDS trop lourd (max 512 Ko). Utilise un logo 256×256.", "err"); }
+        var decoded = core.decodeDds(bytes);
+        state = { sourceDds: bytes, fileName: file.name,
+                  sourceRgba: decoded ? (decoded.width === SIZE && decoded.height === SIZE ? decoded.rgba : resizeRgba(decoded.rgba, decoded.width, decoded.height)) : null };
+        $("white").disabled = !decoded;
+        $("download").disabled = false;
+        drawPreview(); describe();
+        if (!decoded) setStatus('<span class="warn">Aperçu indisponible (format ' + header.fourCC + "), le DDS sera transmis tel quel.</span>");
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          state = { sourceRgba: fitImage(img), sourceDds: null, fileName: file.name };
+          $("white").disabled = false; $("download").disabled = false;
+          $("white").checked = core.isTintable(state.sourceRgba);
+          drawPreview(); describe();
+        };
+        img.onerror = function () { setStatus("Format d'image non reconnu.", "err"); };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  $("download").addEventListener("click", function () {
+    var name = core.sanitizeName($("name").value);
+    if (!name) return setStatus("Donne un nom au logo.", "err");
+    var bytes = buildDds(), rgba = currentRgba();
+    var tintable = rgba ? core.isTintable(rgba) : false;
+    var blob = new Blob([core.buildPackageXml(name, bytes, tintable)], { type: "application/xml" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name.replace(/[\\/:*?|]/g, "_") + ".xml";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  var drop = $("drop");
+  drop.addEventListener("click", function () { $("file").click(); });
+  drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
+  $("file").addEventListener("change", function (e) { loadFile(e.target.files[0]); e.target.value = ""; });
+  ["dragenter", "dragover"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { loadFile(e.dataTransfer.files[0]); });
+  $("white").addEventListener("change", function () { drawPreview(); describe(); });
+  $("tint").addEventListener("input", drawPreview);
+})();
+</script>
+</body>
+</html>

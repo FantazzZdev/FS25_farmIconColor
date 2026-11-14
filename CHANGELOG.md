@@ -5,6 +5,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions = `<
 ## [Non publie] - 1.1.0.0
 ### Ajoute
 - Import de logos personnalises (DDS) depuis `modSettings/FS25_farmIconColor/customLogos/` (touche INSERT ou bouton Importer, admin uniquement).
+- Logos partages par le serveur : l'admin importe un paquet `.xml` (cree avec le convertisseur `tools/logo-converter`), le serveur le verifie, l'enregistre dans la sauvegarde (`savegameX/farmIconColorLogos.xml`) et l'envoie automatiquement a tous les joueurs, y compris ceux qui se connectent plus tard. Fonctionne en solo, en multi auto-heberge et sur serveur dedie.
+- Convertisseur de logos (page web hors ligne) : PNG/JPG/WEBP/SVG/DDS -> paquet `.xml` (DDS 256x256 DXT5 avec mipmaps), option "rendre le logo blanc".
 
 ### Corrige
 - Securite multijoueur : le serveur n'accepte un changement de couleur/logo que de l'admin ou d'un membre de la ferme concernee ; sinon il renvoie les vraies valeurs au joueur.

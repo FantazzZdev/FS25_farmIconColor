@@ -1,4 +1,9 @@
-# Logos personnalisés partagés par le serveur - architecture proposée
+# Logos personnalisés partagés par le serveur - architecture
+
+> **Statut : implémenté** (`mod/scripts/customLogoSync.lua`, `tools/logo-converter/`).
+> Tests A et B validés en jeu ; flux complet validé en simulation (serveur dédié, admin, joueurs, redémarrage).
+> Écarts avec le plan : un seul événement `FarmIconColorLogoEvent` (types HELLO / MANIFEST / REQUEST / CHUNK / UPLOAD),
+> chunks de 4 Ko envoyés 2 par 50 ms, le client demande le manifeste en se connectant (HELLO).
 
 ## Constat (tests de la passation)
 
