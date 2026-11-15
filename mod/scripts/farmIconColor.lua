@@ -4909,7 +4909,16 @@ function FarmIconColor:getGuiButtonTextWidth(button)
     end
 
     local textSize = tonumber(button.textSize)
-    local text = self:getGuiElementText(button)
+    -- Only the displayed label (getGuiElementText also appends name/profile/action).
+    local text = button.text
+
+    if type(text) ~= "string" then
+        text = button.textRaw
+    end
+
+    if type(text) ~= "string" then
+        return nil
+    end
 
     if textSize == nil or textSize <= 0 or text == nil or text == "" then
         return nil
@@ -4959,11 +4968,12 @@ function FarmIconColor:getFarmDialogFooterSpacing(colorButton)
         end
     end
 
-    if best == nil or best > 0.05 then
+    if best == nil then
         return fallback
     end
 
-    return best
+    -- Native footer gaps are a few pixels; anything else is a measuring artefact.
+    return math.max(0.004, math.min(0.020, best))
 end
 
 function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
@@ -4990,12 +5000,13 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     local colorTextWidth = self:getGuiButtonTextWidth(colorButton)
     local ownTextWidth = self:getGuiButtonTextWidth(importButton)
 
-    if colorTextWidth ~= nil and ownTextWidth ~= nil then
+    if colorTextWidth ~= nil and ownTextWidth ~= nil
+        and colorTextWidth < width and ownTextWidth < width
+        and ownTextWidth <= colorTextWidth then
         local fitted = width - colorTextWidth + ownTextWidth
 
-        if fitted > 0.01 then
-            width = fitted
-        end
+        -- Never wider than the Color button, never below half of it.
+        width = math.max(width * 0.5, math.min(width, fitted))
     end
 
     local spacing = self:getFarmDialogFooterSpacing(colorButton)
