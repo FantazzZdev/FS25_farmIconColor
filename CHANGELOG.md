@@ -12,6 +12,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions = `<
 - Convertisseur en ligne : https://fantazzzdev.github.io/FS25_farmIconColor/
 - Convertisseur de logos (page web hors ligne) : PNG/JPG/WEBP/SVG/DDS -> paquet `.xml` (DDS 256x256 DXT5 avec mipmaps), option "rendre le logo blanc".
 
+- Logos en couleurs : un logo converti sans l'option "Rendre le logo blanc" garde ses propres couleurs (grille, fenetre de ferme, menus). La couleur de ferme continue de s'appliquer au reste (carte, marqueurs) et aux logos blancs/integres. L'information voyage avec le logo partage (serveur, sauvegarde, tous les joueurs).
+
 ### Corrige
 - Multijoueur (serveur dedie) : un logo que le serveur ne connait pas (fichier `.dds` brut, ou envoi non confirme) n'est plus proposable dans la grille d'un client, car le choisir etait refuse et la ferme reprenait son ancien logo. L'admin est prevenu : `.dds` non partage (a convertir en `.xml`), confirmation "Logo partage" quand le serveur l'a recu, ou alerte si le serveur ne l'a pas accepte apres 20 s.
 - Securite multijoueur : le serveur n'accepte un changement de couleur/logo que de l'admin ou d'un membre de la ferme concernee ; sinon il renvoie les vraies valeurs au joueur.

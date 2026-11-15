@@ -1599,6 +1599,11 @@ function FarmIconColor:applyGenericFarmColorCacheObject(object, color)
         return 0
     end
 
+    -- Never recolour an element showing a coloured custom logo.
+    if object.farmIconColorLogoName ~= nil and not self:isLogoTintable(object.farmIconColorLogoName) then
+        return 0
+    end
+
     local changed = 0
 
     changed = changed + self:applyColorFields(object, color, {
@@ -6744,6 +6749,11 @@ function FarmIconColor:isFarmLogoGuiElement(element)
     return false
 end
 
+-- False only for custom logos shared as "coloured" by the logo converter.
+function FarmIconColor:isLogoTintable(logoName)
+    return logoName == nil or self.nonTintableLogos == nil or self.nonTintableLogos[logoName] ~= true
+end
+
 function FarmIconColor:applyGuiImageElementColor(element, color)
     local sourceColor = self:normalizeColorCandidate(color)
 
@@ -6756,6 +6766,12 @@ function FarmIconColor:applyGuiImageElementColor(element, color)
 
     local textureChanged = self:applyCustomLogoTexture(element)
     local color = self:toGuiDisplayColor(sourceColor)
+
+    -- A coloured custom logo is drawn with its own colours (white = no tint);
+    -- the farm colour still applies everywhere else (map, markers...).
+    if not self:isLogoTintable(self:getLogoNameFromGuiElement(element)) then
+        color = {1, 1, 1, (color ~= nil and color[4]) or 1}
+    end
 
     local changed = textureChanged
 

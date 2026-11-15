@@ -79,7 +79,7 @@
       <input id="name" type="text" maxlength="48" placeholder="Ex. : TerraPro">
       <div class="row">
         <input id="white" type="checkbox">
-        <label for="white">Rendre le logo blanc (il prendra la couleur de la ferme)</label>
+        <label for="white">Rendre le logo blanc (il prendra la couleur de la ferme). Décoché : le logo garde ses couleurs.</label>
       </div>
       <div id="status" class="muted">Aucun fichier chargé.</div>
       <button id="download" disabled>Télécharger le logo (.xml)</button>
@@ -113,12 +113,13 @@
     return $("white").checked ? core.makeWhite(state.sourceRgba) : state.sourceRgba;
   }
 
-  // In game the mod multiplies every logo by the farm colour (white logos give the exact colour).
+  // In game, white/grey logos are multiplied by the farm colour; coloured logos keep their colours.
   function drawPreview() {
     ctx.clearRect(0, 0, SIZE, SIZE);
     var rgba = currentRgba();
     if (!rgba) return;
-    var out = new Uint8ClampedArray(rgba), tint = hexToRgb($("tint").value);
+    var out = new Uint8ClampedArray(rgba);
+    var tint = core.isTintable(rgba) ? hexToRgb($("tint").value) : [255, 255, 255];
     for (var p = 0; p < out.length; p += 4) {
       out[p] = out[p] * tint[0] / 255; out[p + 1] = out[p + 1] * tint[1] / 255; out[p + 2] = out[p + 2] * tint[2] / 255;
     }
@@ -130,7 +131,7 @@
     if (!bytes) return;
     var kind = rgba == null ? "" : core.isTintable(rgba)
       ? "Logo blanc : il prendra la couleur de la ferme."
-      : "Logo en couleurs : en jeu, la couleur de ferme se mélange à ses couleurs (voir l'aperçu). Coche « Rendre le logo blanc » pour un résultat net.";
+      : "Logo en couleurs : en jeu, il garde ses couleurs (la couleur de ferme s'applique au reste : carte, marqueurs). Coche « Rendre le logo blanc » pour qu'il prenne la couleur de la ferme.";
     var origin = state.sourceDds && !$("white").checked ? "DDS d'origine conservé tel quel" : "converti en DDS 256×256 DXT5";
     setStatus('<span class="ok">✔ Prêt</span> – ' + origin + ", " + Math.round(bytes.length / 1024) + " Ko.<br>" + kind);
   }
@@ -198,7 +199,7 @@
     var name = core.sanitizeName($("name").value);
     if (!name) return setStatus("Donne un nom au logo.", "err");
     var bytes = buildDds(), rgba = currentRgba();
-    var tintable = rgba ? core.isTintable(rgba) : false;
+    var tintable = rgba ? core.isTintable(rgba) : true;
     var blob = new Blob([core.buildPackageXml(name, bytes, tintable)], { type: "application/xml" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name.replace(/[\\/:*?|]/g, "_") + ".xml";

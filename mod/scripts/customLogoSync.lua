@@ -266,6 +266,9 @@ function LS:registerLogo(entry, path)
     fic.customLogoDisplayNames = fic.customLogoDisplayNames or {}
     fic.customLogoPaths[entry.id] = path
     fic.customLogoDisplayNames[entry.id] = entry.name
+    -- Coloured logos (converter: "make white" unchecked) keep their own colours.
+    fic.nonTintableLogos = fic.nonTintableLogos or {}
+    fic.nonTintableLogos[entry.id] = (entry.tintable == false) or nil
     fic:addLogoToOrder(entry.id)
 
     -- Force visible logo elements to pick up the (possibly new) file.
@@ -296,6 +299,10 @@ function LS:unregisterLogo(id)
 
     if fic.customLogoDisplayNames ~= nil then
         fic.customLogoDisplayNames[id] = nil
+    end
+
+    if fic.nonTintableLogos ~= nil then
+        fic.nonTintableLogos[id] = nil
     end
 
     for index = #(fic.logoOrder or {}), 1, -1 do
@@ -407,7 +414,7 @@ function LS:loadCatalogFromSavegame()
             name = self.sanitizeName(getXMLString(xmlFile, key .. "#name")),
             bytes = getXMLInt(xmlFile, key .. "#bytes"),
             adler = tonumber(getXMLString(xmlFile, key .. "#adler32")),
-            tintable = getXMLBool(xmlFile, key .. "#tintable") == true,
+            tintable = getXMLBool(xmlFile, key .. "#tintable") ~= false,
             data = self.cleanBase64(getXMLString(xmlFile, key .. ".data"))
         }
 
@@ -486,7 +493,7 @@ function LS:readPackage(path, filename)
     local name = self.sanitizeName(getXMLString(xmlFile, key .. "#name") or baseName)
     local bytes = getXMLInt(xmlFile, key .. "#bytes")
     local adler = tonumber(getXMLString(xmlFile, key .. "#adler32"))
-    local tintable = getXMLBool(xmlFile, key .. "#tintable") == true
+    local tintable = getXMLBool(xmlFile, key .. "#tintable") ~= false
     local known = name ~= nil and self.catalogById[(FarmIconColor:sanitizeCustomLogoId(name))] or nil
 
     -- Already shared with the same content: nothing to do, skip the decoding.

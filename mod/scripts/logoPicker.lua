@@ -220,14 +220,17 @@ function D:populateCellForItemInSection(list, section, index, cell)
             icon:setImageFilename(filename)
         end
 
-        -- The mod multiplies logos by the farm colour: show them the same way.
+        -- The mod multiplies logos by the farm colour: show them the same way
+        -- (coloured logos keep their own colours).
+        local tint = fic:isLogoTintable(logoName) and self.tint or {1, 1, 1, 1}
+
         if icon.setImageColor ~= nil then
-            icon:setImageColor(nil, self.tint[1], self.tint[2], self.tint[3], 1)
+            icon:setImageColor(nil, tint[1], tint[2], tint[3], 1)
 
             if GuiOverlay ~= nil then
                 for _, state in pairs({GuiOverlay.STATE_SELECTED, GuiOverlay.STATE_FOCUSED, GuiOverlay.STATE_HIGHLIGHTED, GuiOverlay.STATE_PRESSED}) do
                     if state ~= nil then
-                        icon:setImageColor(state, self.tint[1], self.tint[2], self.tint[3], 1)
+                        icon:setImageColor(state, tint[1], tint[2], tint[3], 1)
                     end
                 end
             end
