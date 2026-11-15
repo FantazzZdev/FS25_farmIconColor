@@ -355,8 +355,16 @@ function P:collectLogos(current)
 
     fic:ensureSelectableLogos()
 
+    local sync = FarmIconColorLogoSync
+
     for _, logoName in ipairs(fic.logoOrder or {}) do
-        if fic.logos[logoName] ~= nil then
+        -- On a multiplayer client, hide logos the server does not know yet:
+        -- choosing one would be refused and the farm would keep its old logo.
+        local usable = sync == nil or sync.isLogoUsableInMultiplayer == nil
+            or sync:isLogoUsableInMultiplayer(logoName)
+            or logoName == current
+
+        if fic.logos[logoName] ~= nil and usable then
             table.insert(logos, logoName)
 
             if logoName == current then

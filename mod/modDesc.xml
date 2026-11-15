@@ -90,6 +90,16 @@ Eingaben:
             <fr>Logo partagé avec tous les joueurs : %s</fr>
             <de>Logo für alle Spieler freigegeben: %s</de>
         </text>
+        <text name="farmIconColor_logoUploadFailed">
+            <en>The server did not accept the logo (log in as server admin): %s</en>
+            <fr>Le serveur n'a pas accepté le logo (connecte-toi en admin du serveur) : %s</fr>
+            <de>Der Server hat das Logo nicht angenommen (als Server-Admin anmelden): %s</de>
+        </text>
+        <text name="farmIconColor_logoLocalOnly">
+            <en>%s: .dds file is not shared. Convert it to .xml with the logo converter.</en>
+            <fr>%s : fichier .dds non partagé. Convertis-le en .xml avec le convertisseur de logos.</fr>
+            <de>%s: .dds-Datei wird nicht geteilt. Mit dem Logo-Konverter in .xml umwandeln.</de>
+        </text>
         <text name="farmIconColor_logoUploading">
             <en>Sending logo to the server: %s</en>
             <fr>Envoi du logo au serveur : %s</fr>

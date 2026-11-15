@@ -30,6 +30,7 @@ LS.MAX_CHUNKS = math.ceil(LS.MAX_BASE64 / LS.CHUNK_SIZE)
 LS.MAX_NAME_LENGTH = 48
 LS.SEND_INTERVAL = 50               -- ms between two send batches
 LS.CHUNKS_PER_SEND = 2
+LS.UPLOAD_CONFIRM_TIMEOUT = 20000  -- ms without server confirmation before warning the admin
 LS.HELLO_DELAY = 2000               -- ms after joining before asking the manifest
 LS.deletedPackages = {}
 LS.deletedLocalLogos = {}
@@ -183,6 +184,8 @@ function LS:loadMap()
     self.helloSent = false
     self.pendingPackageFiles = nil
     self.catalogHadEntries = false
+    self.pendingUploads = {}   -- [logoId] = {name=, elapsed=} until the server confirms
+    self.localOnlyNotified = {}
     self:loadDeletedList()
 
     if FarmIconColor:isAuthoritativeInstance() then
@@ -214,6 +217,19 @@ function LS:update(dt)
             if connection ~= nil then
                 self.helloSent = true
                 connection:sendEvent(FarmIconColorLogoEvent.newHello())
+            end
+        end
+    end
+
+    -- Uploads the server never confirmed (no admin rights on the server, lost
+    -- connection...): tell the admin instead of failing silently.
+    if self.pendingUploads ~= nil and #self.outQueue == 0 then
+        for id, pending in pairs(self.pendingUploads) do
+            pending.elapsed = pending.elapsed + dt
+
+            if pending.elapsed >= self.UPLOAD_CONFIRM_TIMEOUT then
+                self.pendingUploads[id] = nil
+                self.notify("farmIconColor_logoUploadFailed", "The server did not accept the logo: %s", pending.name, true)
             end
         end
     end
@@ -575,6 +591,9 @@ function LS:publishEntry(entry, decoded)
     end
 
     self:queueChunks(connection, entry, FarmIconColorLogoEvent.KIND_UPLOAD)
+    self.pendingUploads = self.pendingUploads or {}
+    self.pendingUploads[entry.id] = {name = entry.name, elapsed = 0}
+    self:notifyLogosChanged()
     self.notify("farmIconColor_logoUploading", "Sending logo to server: %s", entry.name, false)
 end
 
@@ -627,6 +646,12 @@ function LS:onManifest(entries)
         local id = name ~= nil and (FarmIconColor:sanitizeCustomLogoId(name)) or nil
         if id ~= nil then
             stillShared[id] = true
+
+            if self.pendingUploads ~= nil and self.pendingUploads[id] ~= nil then
+                local pending = self.pendingUploads[id]
+                self.pendingUploads[id] = nil
+                self.notify("farmIconColor_logoShared", "Logo shared: %s", pending.name, false)
+            end
         end
     end
 
@@ -837,6 +862,44 @@ function LS:isLocalLogoDeleted(id)
 end
 
 -- "shared" (server catalog), "local" (.dds only on this PC) or nil (built-in).
+-- Can this logo be applied to a farm right now? On a multiplayer client only the
+-- built-in logos and the logos shared by the server are known to the server
+-- (and to the other players); a raw .dds or an unconfirmed upload is not.
+function LS:isLogoUsableInMultiplayer(id)
+    local fic = FarmIconColor
+
+    if id == nil or not fic:isClientOnlyMultiplayer() then
+        return true
+    end
+
+    if self.catalogById ~= nil and self.catalogById[id] ~= nil then
+        return true
+    end
+
+    return fic.customLogoPaths == nil or fic.customLogoPaths[id] == nil
+end
+
+-- Raw .dds files are never sent to the server: on a multiplayer client tell the
+-- admin to convert them into a shareable .xml package.
+function LS:notifyLocalOnlyLogos()
+    local fic = FarmIconColor
+
+    if not fic:isClientOnlyMultiplayer() or fic.customLogoPaths == nil then
+        return
+    end
+
+    self.localOnlyNotified = self.localOnlyNotified or {}
+
+    for id, _ in pairs(fic.customLogoPaths) do
+        if not self:isLogoUsableInMultiplayer(id)
+            and (self.pendingUploads == nil or self.pendingUploads[id] == nil)
+            and not self.localOnlyNotified[id] then
+            self.localOnlyNotified[id] = true
+            self.notify("farmIconColor_logoLocalOnly", "%s: .dds file not shared, convert it to .xml with the logo converter", fic:getLogoDisplayName(id), true)
+        end
+    end
+end
+
 function LS:getDeletableKind(id)
     if id == nil then
         return nil
@@ -970,6 +1033,7 @@ if FarmIconColor ~= nil and FarmIconColor.importCustomLogosFromFolder ~= nil the
         if self:isCurrentUserFarmIconAdmin() then
             self:safeCall("import shared logo packages", function()
                 LS:importPackagesFromFolder()
+                LS:notifyLocalOnlyLogos()
             end)
         end
 
