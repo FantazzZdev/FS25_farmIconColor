@@ -22,7 +22,6 @@
                 <SmoothList id="logoList" profile="ficPicker_list" numLateralItems="4" listItemSpacing="10px" listItemLateralSpacing="10px" onDoubleClick="onDoubleClickLogo">
                     <ListItem profile="ficPicker_cell">
                         <Bitmap name="icon" profile="ficPicker_cellIcon"/>
-                        <Text name="title" profile="ficPicker_cellTitle"/>
                     </ListItem>
                 </SmoothList>
 

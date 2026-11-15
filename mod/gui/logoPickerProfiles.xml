@@ -34,8 +34,8 @@
     </Profile>
 
     <Profile name="ficPicker_cellIcon" extends="baseReference" with="anchorTopCenter">
-        <size value="130px 130px"/>
-        <position value="0px -14px"/>
+        <size value="150px 150px"/>
+        <position value="0px -20px"/>
         <imageSliceId value="noSlice"/>
         <imageColor value="1 1 1 1"/>
         <imageSelectedColor value="1 1 1 1"/>
