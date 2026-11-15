@@ -24,4 +24,4 @@
 5. Im Spiel (Admin): Hof-Bearbeitungsfenster → **Logos** → **Import** (EINFG).
 
 ---
-Feedback, suggestions, bugs: [Issues](https://github.com/FantazzZdev/FS25_farmIconColor/issues)
+Feedback / Remarques / Feedback: [Issues](https://github.com/FantazzZdev/FS25_farmIconColor/issues)
