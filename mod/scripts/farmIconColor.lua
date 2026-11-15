@@ -4917,7 +4917,15 @@ function FarmIconColor:hideVanillaColorControlsInElementTree(element, depth, max
     visited[element] = true
 
     local changed = 0
-    if self:isColorPickElement(element) or self:isFarmDialogColorLabelElement(element) then
+
+    -- Never hide the mod's own footer elements (the Logos button name contains
+    -- "Color") nor the footer separators (their image slice is gui.colorPreset).
+    local isOwnFooterElement = element.farmIconColorLogoPickerButton == true
+        or element.farmIconColorFooterSeparator == true
+        or element.farmIconColorImportButton == true
+        or string.find(tostring(element.profile or ""), "ButtonBoxSeparator", 1, true) ~= nil
+
+    if not isOwnFooterElement and (self:isColorPickElement(element) or self:isFarmDialogColorLabelElement(element)) then
         changed = changed + self:hideGuiElement(element)
     end
 

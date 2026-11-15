@@ -45,6 +45,13 @@ jobs:
       - name: Build ZIP
         run: ./tools/build.sh
 
+      - name: Converter file up to date
+        run: |
+          if ! git diff --quiet -- converter/; then
+            echo "::error::converter/FarmIconColor-LogoConverter.html n'est pas a jour : lancer ./tools/build.sh et commiter"
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: FS25_farmIconColor

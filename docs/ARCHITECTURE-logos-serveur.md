@@ -38,7 +38,7 @@ et une erreur dans cette voie peut faire planter le jeu entier (cas de `readBitV
 
 ## Convertisseur (hors jeu, une seule étape pour l'admin)
 
-Une page web statique, hébergée gratuitement sur GitHub Pages, dans `tools/logo-converter/` :
+Une page web statique (sources dans `tools/logo-converter/`, fichier unique à télécharger dans `converter/`, sans hébergement) :
 1. l'admin glisse son fichier `MonLogo.dds` (ou un `.png`, converti en DDS par la page) ;
 2. la page télécharge `MonLogo.xml` ;
 3. l'admin dépose ce `.xml` dans `customLogos/` puis clique **Importer**, comme aujourd'hui.

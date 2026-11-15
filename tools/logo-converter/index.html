@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Convertisseur de logos</title>
+<title>Farm Icon Color – Logo converter</title>
 <style>
   :root {
     --bg: #f4f5f1; --panel: #ffffff; --text: #1d211b; --muted: #5d6658; --line: #d9ddd3;
@@ -45,9 +45,13 @@
   .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
   .row label { margin: 0; font-weight: 400; }
   input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: 6px; background: none; padding: 2px; }
-  button { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--accent);
+  .langs { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
+  .langs button { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel);
+                  color: var(--text); font: 600 13px system-ui, sans-serif; cursor: pointer; }
+  .langs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  button.primary { margin-top: 20px; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--accent);
            color: var(--accent-text); font: 600 15px system-ui, sans-serif; cursor: pointer; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary:disabled { opacity: .45; cursor: not-allowed; }
   #status { margin-top: 14px; font-size: 14px; min-height: 1.5em; }
   .ok { color: var(--ok); } .warn { color: var(--warn); } .err { color: var(--err); }
   ol { padding-left: 20px; margin: 8px 0 0; } li { margin: 6px 0; }
@@ -57,40 +61,45 @@
 </head>
 <body>
 <main>
-  <h1>Convertisseur de logos – Farm Icon Color</h1>
-  <p class="sub">Transforme une image (PNG, JPG, WEBP, SVG) ou un DDS en logo partageable avec tous les joueurs du serveur.</p>
+  <nav class="langs" aria-label="Language">
+    <button type="button" data-lang="fr">FR</button>
+    <button type="button" data-lang="en">EN</button>
+    <button type="button" data-lang="de">DE</button>
+  </nav>
+  <h1 data-i18n="title"></h1>
+  <p class="sub" data-i18n="subtitle"></p>
 
   <div class="grid">
     <div>
       <div id="drop" class="panel" tabindex="0">
-        <strong>Dépose ton image ici</strong>
-        <span>ou clique pour choisir un fichier</span>
+        <strong data-i18n="dropTitle"></strong>
+        <span data-i18n="dropHint"></span>
         <input id="file" type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.dds,image/*" hidden>
       </div>
       <div class="preview" style="margin-top:16px"><canvas id="canvas" width="256" height="256"></canvas></div>
       <div class="row">
         <input id="tint" type="color" value="#3da9fc">
-        <label for="tint">Aperçu avec la couleur de ferme</label>
+        <label for="tint" data-i18n="tintLabel"></label>
       </div>
     </div>
 
     <div class="panel">
-      <label for="name">Nom du logo</label>
-      <input id="name" type="text" maxlength="48" placeholder="Ex. : TerraPro">
+      <label for="name" data-i18n="nameLabel"></label>
+      <input id="name" type="text" maxlength="48" data-i18n-placeholder="namePlaceholder">
       <div class="row">
         <input id="white" type="checkbox">
-        <label for="white">Rendre le logo blanc (il prendra la couleur de la ferme). Décoché : le logo garde ses couleurs.</label>
+        <label for="white" data-i18n="whiteLabel"></label>
       </div>
-      <div id="status" class="muted">Aucun fichier chargé.</div>
-      <button id="download" disabled>Télécharger le logo (.xml)</button>
+      <div id="status" class="muted"></div>
+      <button id="download" class="primary" disabled data-i18n="download"></button>
 
-      <label style="margin-top:28px">Ensuite</label>
+      <label style="margin-top:28px" data-i18n="nextTitle"></label>
       <ol>
-        <li>Place le fichier <code>.xml</code> dans<br><code>Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/</code></li>
-        <li>En jeu (admin), ouvre la modification de ferme, clique sur <strong>Logos</strong> puis <strong>Importer</strong> (INSER).</li>
-        <li>Le logo est envoyé au serveur, enregistré dans la sauvegarde et transmis à tous les joueurs, y compris ceux qui se connectent plus tard.</li>
+        <li data-i18n-html="step1"></li>
+        <li data-i18n-html="step2"></li>
+        <li data-i18n="step3"></li>
       </ol>
-      <p class="muted">Tout se passe dans ton navigateur : aucune image n'est envoyée sur Internet.</p>
+      <p class="muted" data-i18n="privacy"></p>
     </div>
   </div>
 </main>
@@ -104,7 +113,98 @@
   var canvas = $("canvas"), ctx = canvas.getContext("2d");
   var state = null; // { sourceRgba, sourceDds, fileName }
 
+  var TEXTS = {
+    fr: {
+      title: "Convertisseur de logos – Farm Icon Color",
+      subtitle: "Transforme une image (PNG, JPG, WEBP, SVG) ou un DDS en logo partageable avec tous les joueurs du serveur.",
+      dropTitle: "Dépose ton image ici", dropHint: "ou clique pour choisir un fichier",
+      tintLabel: "Aperçu avec la couleur de ferme",
+      nameLabel: "Nom du logo", namePlaceholder: "Ex. : TerraPro",
+      whiteLabel: "Rendre le logo blanc (il prendra la couleur de la ferme). Décoché : le logo garde ses couleurs.",
+      download: "Télécharger le logo (.xml)", nextTitle: "Ensuite",
+      step1: "Place le fichier <code>.xml</code> dans<br><code>Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/</code>",
+      step2: "En jeu (admin), ouvre la modification de ferme, clique sur <strong>Logos</strong> puis <strong>Importer</strong> (INSER).",
+      step3: "Le logo est envoyé au serveur, enregistré dans la sauvegarde et transmis à tous les joueurs, y compris ceux qui se connectent plus tard.",
+      privacy: "Tout se passe dans ton navigateur : aucune image n'est envoyée sur Internet. Cette page fonctionne aussi hors ligne.",
+      noFile: "Aucun fichier chargé.", ready: "✔ Prêt",
+      keptDds: "DDS d'origine conservé tel quel", converted: "converti en DDS 256×256 DXT5", kb: "Ko",
+      kindWhite: "Logo blanc : il prendra la couleur de la ferme.",
+      kindColour: "Logo en couleurs : en jeu, il garde ses couleurs (la couleur de ferme s'applique au reste : carte, marqueurs). Coche « Rendre le logo blanc » pour qu'il prenne la couleur de la ferme.",
+      readError: "Impossible de lire ce fichier.", badDds: "Ce fichier n'est pas un DDS valide.",
+      bigDds: "DDS trop lourd (max 512 Ko). Utilise un logo 256×256.",
+      noPreview: "Aperçu indisponible (format {0}), le DDS sera transmis tel quel.",
+      badImage: "Format d'image non reconnu.", needName: "Donne un nom au logo."
+    },
+    en: {
+      title: "Logo converter – Farm Icon Color",
+      subtitle: "Turns an image (PNG, JPG, WEBP, SVG) or a DDS into a logo shared with every player of the server.",
+      dropTitle: "Drop your image here", dropHint: "or click to choose a file",
+      tintLabel: "Preview with the farm colour",
+      nameLabel: "Logo name", namePlaceholder: "e.g. TerraPro",
+      whiteLabel: "Make the logo white (it takes the farm colour). Unchecked: the logo keeps its own colours.",
+      download: "Download the logo (.xml)", nextTitle: "Next",
+      step1: "Put the <code>.xml</code> file in<br><code>Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/</code>",
+      step2: "In game (admin), open the farm edit window, click <strong>Logos</strong> then <strong>Import</strong> (INSERT).",
+      step3: "The logo is sent to the server, saved in the savegame and sent to every player, including those who join later.",
+      privacy: "Everything happens in your browser: no image is sent over the Internet. This page also works offline.",
+      noFile: "No file loaded.", ready: "✔ Ready",
+      keptDds: "original DDS kept as is", converted: "converted to DDS 256×256 DXT5", kb: "KB",
+      kindWhite: "White logo: it takes the farm colour.",
+      kindColour: "Coloured logo: in game it keeps its own colours (the farm colour applies to the rest: map, markers). Check “Make the logo white” to give it the farm colour.",
+      readError: "This file cannot be read.", badDds: "This file is not a valid DDS.",
+      bigDds: "DDS too large (max 512 KB). Use a 256×256 logo.",
+      noPreview: "Preview not available (format {0}), the DDS is sent as is.",
+      badImage: "Unknown image format.", needName: "Give the logo a name."
+    },
+    de: {
+      title: "Logo-Konverter – Farm Icon Color",
+      subtitle: "Wandelt ein Bild (PNG, JPG, WEBP, SVG) oder eine DDS-Datei in ein Logo um, das mit allen Spielern des Servers geteilt wird.",
+      dropTitle: "Bild hier ablegen", dropHint: "oder klicken, um eine Datei auszuwählen",
+      tintLabel: "Vorschau mit der Hoffarbe",
+      nameLabel: "Name des Logos", namePlaceholder: "z. B. TerraPro",
+      whiteLabel: "Logo weiß machen (es übernimmt die Hoffarbe). Nicht angehakt: das Logo behält seine Farben.",
+      download: "Logo herunterladen (.xml)", nextTitle: "Danach",
+      step1: "Lege die <code>.xml</code>-Datei in<br><code>Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/</code>",
+      step2: "Im Spiel (Admin) das Hof-Bearbeitungsfenster öffnen, auf <strong>Logos</strong> und dann auf <strong>Import</strong> (EINFG) klicken.",
+      step3: "Das Logo wird an den Server gesendet, im Spielstand gespeichert und an alle Spieler übertragen, auch an später verbundene.",
+      privacy: "Alles passiert in deinem Browser: kein Bild wird ins Internet gesendet. Diese Seite funktioniert auch offline.",
+      noFile: "Keine Datei geladen.", ready: "✔ Bereit",
+      keptDds: "Original-DDS unverändert übernommen", converted: "in DDS 256×256 DXT5 umgewandelt", kb: "KB",
+      kindWhite: "Weißes Logo: es übernimmt die Hoffarbe.",
+      kindColour: "Farbiges Logo: im Spiel behält es seine Farben (die Hoffarbe gilt für den Rest: Karte, Markierungen). „Logo weiß machen“ anhaken, damit es die Hoffarbe übernimmt.",
+      readError: "Diese Datei kann nicht gelesen werden.", badDds: "Diese Datei ist keine gültige DDS-Datei.",
+      bigDds: "DDS zu groß (max. 512 KB). Verwende ein 256×256-Logo.",
+      noPreview: "Vorschau nicht verfügbar (Format {0}), die DDS wird unverändert übertragen.",
+      badImage: "Unbekanntes Bildformat.", needName: "Gib dem Logo einen Namen."
+    }
+  };
+  var lang = "en", lastStatus = null;
+
+  function t(key, arg) { var s = (TEXTS[lang] && TEXTS[lang][key]) || TEXTS.en[key] || key; return arg == null ? s : s.replace("{0}", arg); }
+
+  function pickLanguage() {
+    var saved = null;
+    try { saved = localStorage.getItem("farmIconColorConverterLang"); } catch (e) { saved = null; }
+    if (saved && TEXTS[saved]) return saved;
+    var prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"]);
+    for (var i = 0; i < prefs.length; i++) { var code = String(prefs[i]).slice(0, 2).toLowerCase(); if (TEXTS[code]) return code; }
+    return "en";
+  }
+
+  function applyLanguage(code, remember) {
+    lang = TEXTS[code] ? code : "en";
+    document.documentElement.lang = lang;
+    document.title = t("title");
+    document.querySelectorAll("[data-i18n]").forEach(function (el) { el.textContent = t(el.getAttribute("data-i18n")); });
+    document.querySelectorAll("[data-i18n-html]").forEach(function (el) { el.innerHTML = t(el.getAttribute("data-i18n-html")); });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) { el.placeholder = t(el.getAttribute("data-i18n-placeholder")); });
+    document.querySelectorAll(".langs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
+    if (remember) { try { localStorage.setItem("farmIconColorConverterLang", lang); } catch (e) { /* private mode */ } }
+    if (lastStatus) lastStatus(); else setStatus(t("noFile"), "muted");
+  }
+
   function setStatus(html, cls) { $("status").className = cls || ""; $("status").innerHTML = html; }
+  function showStatus(fn) { lastStatus = fn; fn(); }
 
   function hexToRgb(hex) { var n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 
@@ -129,11 +229,11 @@
   function describe() {
     var rgba = currentRgba(), bytes = buildDds();
     if (!bytes) return;
-    var kind = rgba == null ? "" : core.isTintable(rgba)
-      ? "Logo blanc : il prendra la couleur de la ferme."
-      : "Logo en couleurs : en jeu, il garde ses couleurs (la couleur de ferme s'applique au reste : carte, marqueurs). Coche « Rendre le logo blanc » pour qu'il prenne la couleur de la ferme.";
-    var origin = state.sourceDds && !$("white").checked ? "DDS d'origine conservé tel quel" : "converti en DDS 256×256 DXT5";
-    setStatus('<span class="ok">✔ Prêt</span> – ' + origin + ", " + Math.round(bytes.length / 1024) + " Ko.<br>" + kind);
+    showStatus(function () {
+      var kind = rgba == null ? "" : core.isTintable(rgba) ? t("kindWhite") : t("kindColour");
+      var origin = state.sourceDds && !$("white").checked ? t("keptDds") : t("converted");
+      setStatus('<span class="ok">' + t("ready") + "</span> – " + origin + ", " + Math.round(bytes.length / 1024) + " " + t("kb") + ".<br>" + kind);
+    });
   }
 
   function buildDds() {
@@ -164,19 +264,19 @@
     $("white").checked = false;
     var isDds = /\.dds$/i.test(file.name);
     var reader = new FileReader();
-    reader.onerror = function () { setStatus("Impossible de lire ce fichier.", "err"); };
+    reader.onerror = function () { showStatus(function () { setStatus(t("readError"), "err"); }); };
     if (isDds) {
       reader.onload = function () {
         var bytes = new Uint8Array(reader.result), header = core.parseDdsHeader(bytes);
-        if (!header) { state = null; $("download").disabled = true; drawPreview(); return setStatus("Ce fichier n'est pas un DDS valide.", "err"); }
-        if (bytes.length > core.MAX_BYTES) { state = null; $("download").disabled = true; drawPreview(); return setStatus("DDS trop lourd (max 512 Ko). Utilise un logo 256×256.", "err"); }
+        if (!header) { state = null; $("download").disabled = true; drawPreview(); return showStatus(function () { setStatus(t("badDds"), "err"); }); }
+        if (bytes.length > core.MAX_BYTES) { state = null; $("download").disabled = true; drawPreview(); return showStatus(function () { setStatus(t("bigDds"), "err"); }); }
         var decoded = core.decodeDds(bytes);
         state = { sourceDds: bytes, fileName: file.name,
                   sourceRgba: decoded ? (decoded.width === SIZE && decoded.height === SIZE ? decoded.rgba : resizeRgba(decoded.rgba, decoded.width, decoded.height)) : null };
         $("white").disabled = !decoded;
         $("download").disabled = false;
         drawPreview(); describe();
-        if (!decoded) setStatus('<span class="warn">Aperçu indisponible (format ' + header.fourCC + "), le DDS sera transmis tel quel.</span>");
+        if (!decoded) showStatus(function () { setStatus('<span class="warn">' + t("noPreview", header.fourCC) + "</span>"); });
       };
       reader.readAsArrayBuffer(file);
     } else {
@@ -188,7 +288,7 @@
           $("white").checked = core.isTintable(state.sourceRgba);
           drawPreview(); describe();
         };
-        img.onerror = function () { setStatus("Format d'image non reconnu.", "err"); };
+        img.onerror = function () { showStatus(function () { setStatus(t("badImage"), "err"); }); };
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
@@ -197,7 +297,7 @@
 
   $("download").addEventListener("click", function () {
     var name = core.sanitizeName($("name").value);
-    if (!name) return setStatus("Donne un nom au logo.", "err");
+    if (!name) return showStatus(function () { setStatus(t("needName"), "err"); });
     var bytes = buildDds(), rgba = currentRgba();
     var tintable = rgba ? core.isTintable(rgba) : true;
     var blob = new Blob([core.buildPackageXml(name, bytes, tintable)], { type: "application/xml" });
@@ -216,6 +316,10 @@
   drop.addEventListener("drop", function (e) { loadFile(e.dataTransfer.files[0]); });
   $("white").addEventListener("change", function () { drawPreview(); describe(); });
   $("tint").addEventListener("input", drawPreview);
+  document.querySelectorAll(".langs button").forEach(function (b) {
+    b.addEventListener("click", function () { applyLanguage(b.getAttribute("data-lang"), true); });
+  });
+  applyLanguage(pickLanguage(), false);
 })();
 </script>
 </body>

@@ -56,9 +56,15 @@ Conseils : une partie propre (argent normal, pas de mods qui se voient à l'écr
 - [ ] Ancienne sauvegarde 1.0 chargée sans erreur (les couleurs et logos sont conservés).
 - [ ] `log.txt` sans erreur `FS25_farmIconColor`.
 
-## 5. Point ouvert : où trouver le convertisseur ?
+## 5. Convertisseur : téléchargé depuis GitHub (décidé)
 
-La description parle du « convertisseur de logos Farm Icon Color », mais ModHub n'accepte en général
-pas de lien externe dans la description. Options :
-1. Publier le convertisseur sur GitHub Pages et le citer par son nom (les joueurs le trouvent en le cherchant).
-2. Donner le lien sur une page à part (forum, Discord, page GitHub du mod).
+Pas d'hébergement web. La description (EN/FR/DE) donne le lien du dépôt GitHub
+https://github.com/FantazzZdev/FS25_farmIconColor pour les remarques, suggestions, bugs (Issues)
+et le téléchargement du convertisseur `converter/FarmIconColor-LogoConverter.html`
+(un seul fichier, FR/EN/DE, hors ligne). Le workflow GitHub Pages a été retiré.
+
+À faire avant publication :
+- [ ] Le dépôt doit être **public**, sinon le lien est une page 404 pour les joueurs.
+- [ ] Activer l'onglet **Issues** du dépôt (Settings → General → Features).
+- [ ] Si GIANTS refuse le lien dans la description, garder la phrase « page GitHub FS25_farmIconColor »
+      sans l'URL (les joueurs la trouvent par recherche).

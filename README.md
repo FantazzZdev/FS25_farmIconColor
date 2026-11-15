@@ -21,8 +21,9 @@ docs/
   ARCHITECTURE-logos-serveur.md  plan de la synchro des logos personnalises
   HANDOFF.txt    passation d'origine (historique des tests)
 tools/
-  build.ps1 / build.sh   fabrique dist/FS25_farmIconColor.zip (+ dist/convertisseur-logos.html avec build.sh)
-  logo-converter/        convertisseur image -> paquet logo .xml (page web hors ligne)
+  build.ps1 / build.sh   fabrique dist/FS25_farmIconColor.zip (+ converter/FarmIconColor-LogoConverter.html avec build.sh)
+  logo-converter/        sources du convertisseur image -> paquet logo .xml (FR/EN/DE)
+converter/              convertisseur en un seul fichier .html, a telecharger par les joueurs (genere par build.sh)
 .github/                 CI (verif syntaxe + ZIP telechargeable), modeles d'issue/PR
 ```
 
@@ -46,7 +47,7 @@ Chaque push sur GitHub construit aussi le ZIP automatiquement (onglet **Actions*
 
 ## Logos personnalises (version 1.1)
 
-1. Ouvrir le convertisseur en ligne : **https://fantazzzdev.github.io/FS25_farmIconColor/** (ou hors ligne : `dist/convertisseur-logos.html` apres un build), y deposer une image (PNG, JPG, SVG, DDS) et telecharger le `.xml`.
+1. Telecharger le convertisseur : **[converter/FarmIconColor-LogoConverter.html](converter/)** (un seul fichier, FR/EN/DE, fonctionne hors ligne dans le navigateur), y deposer une image (PNG, JPG, WEBP, SVG, DDS) et telecharger le `.xml`.
 2. Placer le `.xml` dans `Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/`.
 3. En jeu, en tant qu'admin, dans la fenetre de modification de ferme : **Logos** (L), puis **Importer** (INSER). Un logo qui ne convient pas se retire avec **Supprimer** (SUPPR, deux appuis).
 

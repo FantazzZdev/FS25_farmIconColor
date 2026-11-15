@@ -551,17 +551,51 @@ function LS:importPackagesFromFolder()
         return string.lower(a) < string.lower(b)
     end)
 
+    local published = 0
+    local deletedFiles = {}
+
     for _, filename in ipairs(files) do
         local entry, decodedOrError = self:readPackage(FarmIconColor:joinPath(directory, filename), filename)
 
         if entry ~= nil then
             self:publishEntry(entry, decodedOrError)
+            published = published + 1
         elseif decodedOrError == "invalid" then
             self.notify("farmIconColor_logoInvalid", "Invalid logo file: %s", filename, true)
         elseif decodedOrError == "deleted" then
-            self.notify("farmIconColor_logoIgnored", "Deleted logo ignored, remove the file: %s", filename, true)
+            table.insert(deletedFiles, filename)
         end
     end
+
+    return published, deletedFiles
+end
+
+-- Deleted logos stay ignored while new logos are imported. When an Import finds
+-- nothing new, the admin wants them back: forget the deletion and import them.
+function LS:hasDeletedLocalLogos()
+    return next(self.deletedLocalLogos or {}) ~= nil
+end
+
+function LS:restoreDeletedLogos(deletedFiles)
+    local directory = FarmIconColor.customLogoDirectory
+
+    if #deletedFiles > 0 and directory ~= nil then
+        for _, filename in ipairs(deletedFiles) do
+            local xmlFile = loadXMLFile("farmIconColorLogoPackage", FarmIconColor:joinPath(directory, filename))
+
+            if xmlFile ~= nil and xmlFile ~= 0 then
+                local adler = tonumber(getXMLString(xmlFile, self.PACKAGE_ROOT .. ".logo#adler32"))
+                delete(xmlFile)
+
+                if adler ~= nil then
+                    self.deletedPackages[string.format("%d", adler)] = nil
+                end
+            end
+        end
+    end
+
+    self.deletedLocalLogos = {}
+    self:saveDeletedList()
 end
 
 function LS:publishEntry(entry, decoded)
@@ -1028,13 +1062,25 @@ if FarmIconColor ~= nil and FarmIconColor.importCustomLogosFromFolder ~= nil the
     local originalImport = FarmIconColor.importCustomLogosFromFolder
 
     FarmIconColor.importCustomLogosFromFolder = function(self, ...)
+        local logosBefore = #(self.logoOrder or {})
         local result = originalImport(self, ...)
 
         if self:isCurrentUserFarmIconAdmin() then
-            self:safeCall("import shared logo packages", function()
+            local published, deletedFiles = LS:importPackagesFromFolder()
+            deletedFiles = deletedFiles or {}
+
+            if (published or 0) == 0 and #(self.logoOrder or {}) == logosBefore
+                and (#deletedFiles > 0 or LS:hasDeletedLocalLogos()) then
+                LS:restoreDeletedLogos(deletedFiles)
+                result = originalImport(self, ...)
                 LS:importPackagesFromFolder()
-                LS:notifyLocalOnlyLogos()
-            end)
+            elseif #deletedFiles > 0 then
+                for _, filename in ipairs(deletedFiles) do
+                    LS.notify("farmIconColor_logoIgnored", "Deleted logo ignored, press Import again to restore it: %s", filename, true)
+                end
+            end
+
+            LS:notifyLocalOnlyLogos()
         end
 
         return result

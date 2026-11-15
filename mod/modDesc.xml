@@ -21,7 +21,7 @@ Features:
 - Singleplayer, multiplayer and dedicated server.
 
 Custom logos:
-1. Convert your image (PNG, JPG, WEBP, SVG or DDS) with the Farm Icon Color logo converter.
+1. Download the logo converter from the GitHub page below (converter folder): a single .html file in English, French and German that runs offline in your browser. Convert your image (PNG, JPG, WEBP, SVG or DDS) into a .xml file.
 2. Put the .xml file in Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/
 3. In game, open Logos and press Import.
 
@@ -29,6 +29,9 @@ Controls:
 - Farm creation/editing window: Logos (L) or click the logo to open the logo grid.
 - Logo window: Confirm (Enter), Back (Esc); admin: Import (INSERT), Delete (DEL, press twice).
 - Singleplayer: F9 opens the farm colour customisation.
+
+GitHub (feedback, suggestions, bug reports and logo converter download):
+https://github.com/FantazzZdev/FS25_farmIconColor
 
 Changelog 1.1.0.0:
 - New logo window: a grid of logos opened with the Logos button (L) or by clicking the logo.
@@ -53,7 +56,7 @@ Fonctionnalités :
 - Solo, multijoueur et serveur dédié.
 
 Logos personnalisés :
-1. Convertissez votre image (PNG, JPG, WEBP, SVG ou DDS) avec le convertisseur de logos Farm Icon Color.
+1. Téléchargez le convertisseur de logos sur la page GitHub ci-dessous (dossier converter) : un seul fichier .html en français, anglais et allemand, qui fonctionne hors ligne dans votre navigateur. Convertissez votre image (PNG, JPG, WEBP, SVG ou DDS) en fichier .xml.
 2. Placez le fichier .xml dans Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/
 3. En jeu, ouvrez Logos puis appuyez sur Importer.
 
@@ -61,6 +64,9 @@ Commandes :
 - Fenêtre de création/modification de ferme : Logos (L) ou clic sur le logo pour ouvrir la grille des logos.
 - Fenêtre des logos : Valider (Entrée), Retour (Échap) ; admin : Importer (INSER), Supprimer (SUPPR, deux appuis).
 - En solo : F9 ouvre la personnalisation de la couleur de ferme.
+
+GitHub (remarques, suggestions, signalement de bugs et téléchargement du convertisseur de logos) :
+https://github.com/FantazzZdev/FS25_farmIconColor
 
 Changelog 1.1.0.0 :
 - Nouvelle fenêtre des logos : grille de logos ouverte avec le bouton Logos (L) ou un clic sur le logo.
@@ -85,7 +91,7 @@ Funktionen:
 - Einzelspieler, Mehrspieler und dedizierter Server.
 
 Eigene Logos:
-1. Wandle dein Bild (PNG, JPG, WEBP, SVG oder DDS) mit dem Farm Icon Color Logo-Konverter um.
+1. Lade den Logo-Konverter von der GitHub-Seite unten herunter (Ordner converter): eine einzige .html-Datei auf Deutsch, Englisch und Französisch, die offline in deinem Browser läuft. Wandle dein Bild (PNG, JPG, WEBP, SVG oder DDS) in eine .xml-Datei um.
 2. Lege die .xml-Datei in Dokumente/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/ ab.
 3. Öffne im Spiel Logos und drücke Importieren.
 
@@ -93,6 +99,9 @@ Steuerung:
 - Fenster zum Erstellen/Bearbeiten eines Hofes: Logos (L) oder Klick auf das Logo öffnet das Logo-Raster.
 - Logo-Fenster: Bestätigen (Enter), Zurück (Esc); Admin: Importieren (EINFG), Löschen (ENTF, zweimal drücken).
 - Einzelspieler: F9 öffnet die Anpassung der Hoffarbe.
+
+GitHub (Feedback, Vorschläge, Fehlermeldungen und Download des Logo-Konverters):
+https://github.com/FantazzZdev/FS25_farmIconColor
 
 Changelog 1.1.0.0:
 - Neues Logo-Fenster: ein Logo-Raster, geöffnet mit der Schaltfläche Logos (L) oder per Klick auf das Logo.
@@ -342,9 +351,9 @@ Changelog 1.1.0.0:
             <de>Logo gelöscht: %s</de>
         </text>
         <text name="farmIconColor_logoIgnored">
-            <en>Deleted logo ignored, remove or replace the file: %s</en>
-            <fr>Logo supprimé ignoré, retirez ou remplacez le fichier : %s</fr>
-            <de>Gelöschtes Logo ignoriert, Datei entfernen oder ersetzen: %s</de>
+            <en>Deleted logo ignored (press Import again to restore it): %s</en>
+            <fr>Logo supprimé ignoré (Importer à nouveau pour le restaurer) : %s</fr>
+            <de>Gelöschtes Logo ignoriert (erneut Importieren zum Wiederherstellen): %s</de>
         </text>
         <text name="input_FARMICONCOLOR_OPEN_LOGO_PICKER">
             <en>Logos</en>
