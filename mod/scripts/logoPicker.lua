@@ -466,6 +466,25 @@ function P:placeInFooterLayout(button, colorButton)
                 end)
 
                 if ok and type(cloned) == "table" then
+                    -- Carry over visual fields the engine copy may skip (overlay,
+                    -- colors, size), then make sure it is drawable.
+                    for key, value in pairs(element) do
+                        if cloned[key] == nil and type(value) ~= "function"
+                            and key ~= "parent" and key ~= "elements" and key ~= "target"
+                            and key ~= "farmIconColorHidden" then
+                            cloned[key] = value
+                        end
+                    end
+
+                    cloned.farmIconColorHidden = false
+                    cloned.disabled = false
+
+                    if cloned.setDisabled ~= nil then
+                        pcall(function()
+                            cloned:setDisabled(false)
+                        end)
+                    end
+
                     separator = cloned
                     cloned.farmIconColorFooterSeparator = true
                     button.farmIconColorFooterSeparator = cloned
@@ -553,6 +572,17 @@ function P:placeInFooterLayout(button, colorButton)
             end
 
             local wanted = hasLeft and hasRight
+
+            -- Same look as a native separator: never drawn in a disabled state.
+            if wanted and element.disabled == true then
+                element.disabled = false
+
+                if element.setDisabled ~= nil then
+                    pcall(function()
+                        element:setDisabled(false)
+                    end)
+                end
+            end
 
             if (element.visible ~= false) ~= wanted then
                 element.visible = wanted
