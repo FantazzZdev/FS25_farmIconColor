@@ -455,39 +455,28 @@ function P:placeInFooterLayout(button, colorButton)
     local changed = false
     local separator = button.farmIconColorFooterSeparator
 
-    if separator == nil and button.farmIconColorFooterSeparatorSearched ~= true then
-        button.farmIconColorFooterSeparatorSearched = true
-
+    -- Clone a native separator only once one is actually shown (same pattern as
+    -- other FS25 mods); a copy of a hidden separator is laid out but not drawn.
+    if separator == nil then
         for _, element in ipairs(elements) do
             if isFooterSeparator(element) and element.clone ~= nil
-                and element.farmIconColorFooterSeparator ~= true then
+                and element.farmIconColorFooterSeparator ~= true
+                and element.visible ~= false
+                and (element.getIsVisible == nil or element:getIsVisible()) then
                 local ok, cloned = pcall(function()
                     return element:clone(box, false, true)
                 end)
 
                 if ok and type(cloned) == "table" then
-                    -- Carry over visual fields the engine copy may skip (overlay,
-                    -- colors, size), then make sure it is drawable.
-                    for key, value in pairs(element) do
-                        if cloned[key] == nil and type(value) ~= "function"
-                            and key ~= "parent" and key ~= "elements" and key ~= "target"
-                            and key ~= "farmIconColorHidden" then
-                            cloned[key] = value
-                        end
-                    end
-
-                    cloned.farmIconColorHidden = false
-                    cloned.disabled = false
-
-                    if cloned.setDisabled ~= nil then
-                        pcall(function()
-                            cloned:setDisabled(false)
-                        end)
-                    end
-
                     separator = cloned
                     cloned.farmIconColorFooterSeparator = true
                     button.farmIconColorFooterSeparator = cloned
+
+                    if cloned.setVisible ~= nil then
+                        pcall(function()
+                            cloned:setVisible(true)
+                        end)
+                    end
                 end
 
                 break
