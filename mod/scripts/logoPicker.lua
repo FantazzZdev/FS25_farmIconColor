@@ -412,6 +412,171 @@ function P:getVisibleFarmDialog()
     return nil
 end
 
+local function isFooterSeparator(element)
+    if type(element) ~= "table" then
+        return false
+    end
+
+    local profile = string.lower(tostring(element.profile or ""))
+
+    return string.find(profile, "separator", 1, true) ~= nil
+end
+
+local function indexOfElement(elements, element)
+    for index, candidate in ipairs(elements) do
+        if candidate == element then
+            return index
+        end
+    end
+
+    return nil
+end
+
+local function detachElement(elements, element)
+    local index = indexOfElement(elements, element)
+
+    if index ~= nil then
+        table.remove(elements, index)
+    end
+end
+
+-- Puts the Logos button (and a cloned native separator) just before the Color
+-- button inside the native button BoxLayout, so the game keeps the original
+-- right-aligned footer. Returns false when the footer is not a layout.
+function P:placeInFooterLayout(button, colorButton)
+    local fic = FarmIconColor
+    local box = colorButton.parent
+
+    if type(box) ~= "table" or type(box.elements) ~= "table" or box.invalidateLayout == nil then
+        return false
+    end
+
+    local elements = box.elements
+    local changed = false
+    local separator = button.farmIconColorFooterSeparator
+
+    if separator == nil and button.farmIconColorFooterSeparatorSearched ~= true then
+        button.farmIconColorFooterSeparatorSearched = true
+
+        for _, element in ipairs(elements) do
+            if isFooterSeparator(element) and element.clone ~= nil
+                and element.farmIconColorFooterSeparator ~= true then
+                local ok, cloned = pcall(function()
+                    return element:clone(box, false, true)
+                end)
+
+                if ok and type(cloned) == "table" then
+                    separator = cloned
+                    cloned.farmIconColorFooterSeparator = true
+                    button.farmIconColorFooterSeparator = cloned
+                end
+
+                break
+            end
+        end
+    end
+
+    local colorIndex = indexOfElement(elements, colorButton)
+
+    if colorIndex == nil then
+        return false
+    end
+
+    local inOrder
+
+    if separator ~= nil then
+        inOrder = elements[colorIndex - 1] == separator and elements[colorIndex - 2] == button
+    else
+        inOrder = elements[colorIndex - 1] == button
+    end
+
+    if not inOrder then
+        detachElement(elements, button)
+
+        if separator ~= nil then
+            detachElement(elements, separator)
+        end
+
+        colorIndex = indexOfElement(elements, colorButton) or (#elements + 1)
+
+        if separator ~= nil then
+            table.insert(elements, colorIndex, separator)
+            separator.parent = box
+        end
+
+        table.insert(elements, colorIndex, button)
+        button.parent = box
+        changed = true
+    end
+
+    if button.layoutIgnore == true then
+        button.layoutIgnore = false
+        changed = true
+    end
+
+    if button.farmIconColorFooterSized ~= true then
+        button.farmIconColorFooterSized = true
+        local width, height = fic:getFittedFooterButtonSize(button, colorButton)
+
+        if button.setSize ~= nil and height ~= nil then
+            pcall(function()
+                button:setSize(width, height)
+            end)
+        elseif type(button.size) == "table" then
+            button.size[1] = width
+        end
+
+        changed = true
+    end
+
+    -- A separator is shown only between two visible buttons (native look).
+    for index, element in ipairs(elements) do
+        if isFooterSeparator(element) then
+            local hasLeft, hasRight = false, false
+
+            for i = index - 1, 1, -1 do
+                local other = elements[i]
+
+                if not isFooterSeparator(other) and type(other) == "table" and other.visible ~= false then
+                    hasLeft = true
+                    break
+                end
+            end
+
+            for i = index + 1, #elements do
+                local other = elements[i]
+
+                if not isFooterSeparator(other) and type(other) == "table" and other.visible ~= false then
+                    hasRight = true
+                    break
+                end
+            end
+
+            local wanted = hasLeft and hasRight
+
+            if (element.visible ~= false) ~= wanted then
+                element.visible = wanted
+
+                if element.setVisible ~= nil then
+                    pcall(function()
+                        element:setVisible(wanted)
+                    end)
+                end
+
+                changed = true
+            end
+        end
+    end
+
+    if changed then
+        pcall(function()
+            box:invalidateLayout()
+        end)
+    end
+
+    return true
+end
+
 -- "Logos" footer button, cloned from the Color button like the Import button.
 function P:ensureFooterButton(dialog)
     local fic = FarmIconColor
@@ -462,8 +627,10 @@ function P:ensureFooterButton(dialog)
         end
     end
 
-    -- Same place and size as the former Import button: left of Color.
-    fic:positionFarmDialogImportButton(button, colorButton)
+    -- Native footer row: Logos | Color | Back | Confirm, laid out by the game.
+    if not self:placeInFooterLayout(button, colorButton) then
+        fic:positionFarmDialogImportButton(button, colorButton)
+    end
     fic:ensureFarmDialogImportButtonMouseRegistration(button)
     fic:showGuiElementWithParents(button)
 

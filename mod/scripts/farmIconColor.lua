@@ -4976,6 +4976,30 @@ function FarmIconColor:getFarmDialogFooterSpacing(colorButton)
     return math.max(0.004, math.min(0.020, best))
 end
 
+-- Size for a footer button cloned from the Color button: same height, width
+-- fitted to its own label (Color width minus the label difference).
+function FarmIconColor:getFittedFooterButtonSize(button, colorButton)
+    local colorSize = colorButton.size
+    local ownSize = button.size
+    local width = type(colorSize) == "table" and tonumber(colorSize[1]) or nil
+    width = width or (type(ownSize) == "table" and tonumber(ownSize[1]) or nil) or 0.12
+    local height = type(colorSize) == "table" and tonumber(colorSize[2]) or nil
+
+    local colorTextWidth = self:getGuiButtonTextWidth(colorButton)
+    local ownTextWidth = self:getGuiButtonTextWidth(button)
+
+    if colorTextWidth ~= nil and ownTextWidth ~= nil
+        and colorTextWidth < width and ownTextWidth < width
+        and ownTextWidth <= colorTextWidth then
+        local fitted = width - colorTextWidth + ownTextWidth
+
+        -- Never wider than the Color button, never below half of it.
+        width = math.max(width * 0.5, math.min(width, fitted))
+    end
+
+    return width, height
+end
+
 function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     if type(importButton) ~= "table" or type(colorButton) ~= "table" then
         return
@@ -4991,23 +5015,7 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
 
     local x = tonumber(colorPosition[1]) or 0
     local y = tonumber(colorPosition[2]) or 0
-    local width = type(colorSize) == "table" and tonumber(colorSize[1]) or nil
-    width = width or (type(importSize) == "table" and tonumber(importSize[1]) or nil) or 0.12
-    local height = type(colorSize) == "table" and tonumber(colorSize[2]) or nil
-
-    -- Same layout as the native footer: the button is as wide as its own label
-    -- (the Color button width minus the label difference) and keeps the same gap.
-    local colorTextWidth = self:getGuiButtonTextWidth(colorButton)
-    local ownTextWidth = self:getGuiButtonTextWidth(importButton)
-
-    if colorTextWidth ~= nil and ownTextWidth ~= nil
-        and colorTextWidth < width and ownTextWidth < width
-        and ownTextWidth <= colorTextWidth then
-        local fitted = width - colorTextWidth + ownTextWidth
-
-        -- Never wider than the Color button, never below half of it.
-        width = math.max(width * 0.5, math.min(width, fitted))
-    end
+    local width, height = self:getFittedFooterButtonSize(importButton, colorButton)
 
     local spacing = self:getFarmDialogFooterSpacing(colorButton)
     local newX = x - width - spacing
