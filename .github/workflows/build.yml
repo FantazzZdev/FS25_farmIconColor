@@ -29,6 +29,13 @@ jobs:
             exit 1
           fi
 
+      - name: No pcall/xpcall (GIANTS TestRunner PublicLuaCheck)
+        run: |
+          if grep -nwE 'x?pcall' mod/scripts/*.lua; then
+            echo "::error::pcall/xpcall interdit par le TestRunner GIANTS (cache les erreurs du log)"
+            exit 1
+          fi
+
       - name: Test build warning
         run: |
           if grep -q 'scripts/dev/' mod/modDesc.xml; then

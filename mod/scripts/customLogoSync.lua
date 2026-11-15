@@ -142,15 +142,15 @@ function LS.writeBinaryFile(path, data)
         return false
     end
 
-    local okOpen, handle = pcall(createFile, path, FileAccess.WRITE)
-    if not okOpen or handle == nil or handle == 0 then
+    local handle = createFile(path, FileAccess.WRITE)
+    if handle == nil or handle == 0 then
         return false
     end
 
-    local okWrite = pcall(fileWrite, handle, data)
-    pcall(delete, handle)
+    fileWrite(handle, data)
+    delete(handle)
 
-    return okWrite and (fileExists == nil or fileExists(path))
+    return fileExists == nil or fileExists(path)
 end
 
 function LS.notify(textKey, fallback, value, isError)
@@ -167,9 +167,7 @@ function LS.notify(textKey, fallback, value, isError)
         notificationType = isError and FSBaseMission.INGAME_NOTIFICATION_CRITICAL or FSBaseMission.INGAME_NOTIFICATION_OK
     end
 
-    pcall(function()
-        mission:addIngameNotification(notificationType, text)
-    end)
+    mission:addIngameNotification(notificationType, text)
 end
 
 -- ------------------------------------------------------------- lifecycle ---
@@ -247,9 +245,7 @@ function LS:update(dt)
                     break
                 end
 
-                pcall(function()
-                    item.connection:sendEvent(item.event)
-                end)
+                item.connection:sendEvent(item.event)
             end
         end
     end
@@ -545,9 +541,7 @@ function LS:importPackagesFromFolder()
     end
 
     self.pendingPackageFiles = {}
-    pcall(function()
-        getFiles(directory, "onPackageFile", self)
-    end)
+    getFiles(directory, "onPackageFile", self)
 
     local files = self.pendingPackageFiles
     self.pendingPackageFiles = nil
@@ -625,11 +619,9 @@ function LS:isConnectionMasterUser(connection)
         return false
     end
 
-    local ok, isMaster = pcall(function()
-        return userManager:getUserByConnection(connection):getIsMasterUser()
-    end)
+    local user = userManager:getUserByConnection(connection)
 
-    return ok and isMaster == true
+    return type(user) == "table" and user.getIsMasterUser ~= nil and user:getIsMasterUser() == true
 end
 
 -- Server: a client wants the manifest.

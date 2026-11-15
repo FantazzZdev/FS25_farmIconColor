@@ -257,11 +257,8 @@ function FarmIconColor:update(dt)
 end
 
 function FarmIconColor:safeCall(label, callback)
-    local success, message = pcall(callback)
-
-    if not success then
-        FarmIconColor:debugPrint(string.format("[%s] ERROR in %s: %s", self.MOD_NAME, tostring(label), tostring(message)))
-    end
+    -- Errors are not hidden: they reach the game log like any other script error.
+    callback()
 end
 
 function FarmIconColor:loadConfig()
@@ -380,15 +377,7 @@ function FarmIconColor:ensureFolderExists(directory)
         return false, "createFolder unavailable"
     end
 
-    local success, result = pcall(function()
-        return createFolder(directory)
-    end)
-
-    if not success then
-        return false, tostring(result)
-    end
-
-    return true, result
+    return true, createFolder(directory)
 end
 
 
@@ -407,12 +396,13 @@ function FarmIconColor:ensureCustomLogoReadme(directory)
         return false, "GIANTS file API unavailable"
     end
 
-    local success, result = pcall(function()
-        local fileId = createFile(filename, FileAccess.WRITE)
+    local fileId = createFile(filename, FileAccess.WRITE)
 
-        if fileId == nil or fileId == 0 then
-            return false, "createFile failed"
-        end
+    if fileId == nil or fileId == 0 then
+        return false, "createFile failed"
+    end
+
+    do
 
         local content =
             "Farm Icon Color - Custom Logos\n" ..
@@ -420,7 +410,8 @@ function FarmIconColor:ensureCustomLogoReadme(directory)
             "This folder is created automatically by Farm Icon Color.\n" ..
             "Place your personal farm logos here:\n" ..
             "- .xml logo packages (made with the Farm Icon Color logo converter): shared automatically with every player of the server;\n" ..
-            "- .dds files: visible only on this computer.\n\n" ..
+            "- .dds files: visible only on this computer (single player / host only).\n" ..
+            "White logos take the farm colour, coloured logos keep their own colours.\n\n" ..
             "Location:\n" ..
             "Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/\n\n" ..
             "Required format:\n" ..
@@ -435,19 +426,9 @@ function FarmIconColor:ensureCustomLogoReadme(directory)
 
         fileWrite(fileId, content)
         delete(fileId)
-
-        return true, "README.txt created"
-    end)
-
-    if not success then
-        return false, tostring(result)
     end
 
-    if type(result) == "table" then
-        return result[1], result[2]
-    end
-
-    return result == true, tostring(result)
+    return true, "README.txt created"
 end
 
 function FarmIconColor:getMissionSavegameKey()
@@ -654,14 +635,7 @@ function FarmIconColor:tryLoadCustomLogos()
         return false
     end
 
-    local success, result = pcall(function()
-        return getFiles(directory, "onCustomLogoFile", self)
-    end)
-
-    if not success then
-        FarmIconColor:debugPrint(string.format("[%s] customLogos TEST: scan failed directory=%s error=%s", self.MOD_NAME, tostring(directory), tostring(result)))
-        return false
-    end
+    getFiles(directory, "onCustomLogoFile", self)
 
     table.sort(self.pendingCustomLogoFiles, function(a, b)
         return string.lower(tostring(a)) < string.lower(tostring(b))
@@ -676,7 +650,7 @@ function FarmIconColor:tryLoadCustomLogos()
 
     self.pendingCustomLogoFiles = nil
     self.customLogosLoaded = true
-    FarmIconColor:debugPrint(string.format("[%s] customLogos TEST: scan complete directory=%s files=%s loaded=%d totalSelectable=%d", self.MOD_NAME, tostring(directory), tostring(result), loadedCount, #(self.logoOrder or {})))
+    FarmIconColor:debugPrint(string.format("[%s] customLogos TEST: scan complete directory=%s loaded=%d totalSelectable=%d", self.MOD_NAME, tostring(directory), loadedCount, #(self.logoOrder or {})))
 
     return true
 end
@@ -1147,34 +1121,14 @@ function FarmIconColor:getObjectFarmId(object)
         return object.ownerFarmId
     end
 
-    if object.getOwnerFarmId ~= nil then
-        local success, farmId = pcall(function()
-            return object:getOwnerFarmId()
-        end)
-
-        if success then
-            return farmId
-        end
+    -- Object/Vehicle/Placeable:getOwnerFarmId() only return this field; reading it
+    -- directly is safe on any table met while scanning (classes included).
+    if type(object.vehicle) == "table" and object.vehicle.ownerFarmId ~= nil then
+        return object.vehicle.ownerFarmId
     end
 
-    if object.vehicle ~= nil and object.vehicle.getOwnerFarmId ~= nil then
-        local success, farmId = pcall(function()
-            return object.vehicle:getOwnerFarmId()
-        end)
-
-        if success then
-            return farmId
-        end
-    end
-
-    if object.placeable ~= nil and object.placeable.getOwnerFarmId ~= nil then
-        local success, farmId = pcall(function()
-            return object.placeable:getOwnerFarmId()
-        end)
-
-        if success then
-            return farmId
-        end
+    if type(object.placeable) == "table" and object.placeable.ownerFarmId ~= nil then
+        return object.placeable.ownerFarmId
     end
 
     return nil
@@ -1327,11 +1281,9 @@ function FarmIconColor:applyGameFarmColorInPlace(farmId, color, source)
     end
 
     if farm.getColor ~= nil then
-        local success, farmColor = pcall(function()
-            return farm:getColor()
-        end)
+        local farmColor = farm:getColor()
 
-        if success and type(farmColor) == "table" then
+        if type(farmColor) == "table" then
             self:setColorTable(farmColor, customColor)
             changed = changed + 1
         end
@@ -1374,51 +1326,10 @@ function FarmIconColor:applyGameFarmColorInPlace(farmId, color, source)
     return 0
 end
 
+-- Older builds probed manager methods (updateFarmlandMapping, rebuild, ...) that do not
+-- exist in FS25; farmland colours follow the farm colour changed in place.
 function FarmIconColor:refreshFarmlandAndMapColors(source)
-    local refreshed = 0
-
-    local managers = {
-        g_farmlandManager,
-        g_fieldManager,
-        g_currentMission ~= nil and g_currentMission.farmlandManager or nil,
-        g_currentMission ~= nil and g_currentMission.fieldManager or nil,
-        g_currentMission ~= nil and g_currentMission.hud ~= nil and g_currentMission.hud.ingameMap or nil
-    }
-
-    local methodNames = {
-        "updateColors",
-        "updateFarmColors",
-        "updateFarmlandColors",
-        "updateFarmlandMapping",
-        "updateFarmlands",
-        "updateMapColors",
-        "rebuild",
-        "rebuildMap",
-        "invalidate",
-        "setTerrainDirty"
-    }
-
-    for _, manager in ipairs(managers) do
-        if type(manager) == "table" then
-            for _, methodName in ipairs(methodNames) do
-                if type(manager[methodName]) == "function" then
-                    local success = pcall(function()
-                        manager[methodName](manager)
-                    end)
-
-                    if success then
-                        refreshed = refreshed + 1
-                    end
-                end
-            end
-        end
-    end
-
-    if refreshed > 0 then
-        FarmIconColor:debugPrint(string.format("[%s] Requested farmland/map color refresh calls=%s source=%s", self.MOD_NAME, tostring(refreshed), tostring(source)))
-    end
-
-    return refreshed
+    return 0
 end
 
 
@@ -1649,56 +1560,24 @@ function FarmIconColor:applyGenericFarmColorCacheObject(object, color)
 
     changed = changed + self:applyHotspotColorMethods(object, color)
 
-    if object.setImageColor ~= nil then
-        local guiColor = self:toGuiDisplayColor(color)
-        local success = pcall(function()
-            object:setImageColor(self:getGuiNormalState(), guiColor[1], guiColor[2], guiColor[3], guiColor[4] or 1)
-        end)
-
-        if not success then
-            success = pcall(function()
-                object:setImageColor(guiColor)
-            end)
-        end
-
-        if success then
-            changed = changed + 1
-        end
+    -- GUI methods only on real element instances (an instance has its own
+    -- 'elements' list; a class table met while scanning does not).
+    if type(object.elements) ~= "table" then
+        return changed
     end
 
-    if object.setOverlayColor ~= nil then
+    if object.setImageColor ~= nil and type(object.overlay) == "table" then
         local guiColor = self:toGuiDisplayColor(color)
-        local success = pcall(function()
-            object:setOverlayColor(self:getGuiNormalState(), guiColor[1], guiColor[2], guiColor[3], guiColor[4] or 1)
-        end)
-
-        if not success then
-            success = pcall(function()
-                object:setOverlayColor(guiColor)
-            end)
-        end
-
-        if success then
-            changed = changed + 1
-        end
-    end
-
-    if object.updateColors ~= nil then
-        pcall(function()
-            object:updateColors()
-        end)
+        object:setImageColor(self:getGuiNormalState(), guiColor[1], guiColor[2], guiColor[3], guiColor[4] or 1)
+        changed = changed + 1
     end
 
     if object.invalidateLayout ~= nil then
-        pcall(function()
-            object:invalidateLayout()
-        end)
+        object:invalidateLayout()
     end
 
     if object.updateAbsolutePosition ~= nil then
-        pcall(function()
-            object:updateAbsolutePosition()
-        end)
+        object:updateAbsolutePosition()
     end
 
     return changed
@@ -1743,11 +1622,9 @@ function FarmIconColor:applyConfiguredFarmColor(farmId, configuredFarm)
     local currentColor = nil
 
     if farm.getColor ~= nil then
-        local success, color = pcall(function()
-            return farm:getColor()
-        end)
+        local color = farm:getColor()
 
-        if success and type(color) == "table" then
+        if type(color) == "table" then
             currentColor = color
         end
     end
@@ -1782,18 +1659,6 @@ function FarmIconColor:applyConfiguredFarmColor(farmId, configuredFarm)
     self.appliedColor = self:copyColor(customColor) or customColor
 
     FarmIconColor:debugPrint(string.format("[%s] Applied custom color in-place for farmId=%s colorIndex=%s color=%s source=%s", self.MOD_NAME, tostring(farmId), tostring(colorIndex), self:valueToString(customColor), tostring(colorSource)))
-
-    if farm.getColor ~= nil then
-        local success, color = pcall(function()
-            return farm:getColor()
-        end)
-
-        if success then
-            FarmIconColor:debugPrint(string.format("[%s] Farm getColor() after apply: %s", self.MOD_NAME, self:valueToString(color)))
-        else
-            FarmIconColor:debugPrint(string.format("[%s] Farm getColor() after apply failed: %s", self.MOD_NAME, tostring(color)))
-        end
-    end
 
     self:applyMapHotspotColors(farmId, customColor)
 end
@@ -1851,17 +1716,8 @@ function FarmIconColor:checkPrototypeLogoSelectorHotkeys()
         return
     end
 
-    local successPrevious, previousPressed = pcall(function()
-        return Input.isKeyPressed(previousKey)
-    end)
-
-    local successNext, nextPressed = pcall(function()
-        return Input.isKeyPressed(nextKey)
-    end)
-
-    if not successPrevious or not successNext then
-        return
-    end
+    local previousPressed = Input.isKeyPressed(previousKey) == true
+    local nextPressed = Input.isKeyPressed(nextKey) == true
 
     if previousPressed and not self.logoSelectorPreviousKeyDown then
         self:selectLogoInActiveFarmDialog(-1)
@@ -1998,11 +1854,9 @@ end
 
 function FarmIconColor:getTranslatedText(key, fallback)
     if key ~= nil and g_i18n ~= nil and g_i18n.getText ~= nil then
-        local success, text = pcall(function()
-            return g_i18n:getText(key)
-        end)
+        local text = g_i18n:getText(key)
 
-        if success and text ~= nil and text ~= "" and text ~= key then
+        if text ~= nil and text ~= "" and text ~= key then
             return text
         end
     end
@@ -2020,9 +1874,7 @@ function FarmIconColor:hookFarmDialogLogoSelectorLabel(element)
     element.disabled = false
 
     if element.setDisabled ~= nil then
-        pcall(function()
-            element:setDisabled(false)
-        end)
+        element:setDisabled(false)
     end
 
     element.onClickCallback = function()
@@ -2053,15 +1905,11 @@ function FarmIconColor:prepareFarmDialogLogoSelectorLabelElement(element)
     end
 
     if element.setSize ~= nil then
-        pcall(function()
-            element:setSize(wantedWidth, wantedHeight)
-        end)
+        element:setSize(wantedWidth, wantedHeight)
     end
 
     if element.setTextAlignment ~= nil and RenderText ~= nil and RenderText.ALIGN_RIGHT ~= nil then
-        pcall(function()
-            element:setTextAlignment(RenderText.ALIGN_RIGHT)
-        end)
+        element:setTextAlignment(RenderText.ALIGN_RIGHT)
     end
 
     if RenderText ~= nil and RenderText.ALIGN_RIGHT ~= nil then
@@ -2253,15 +2101,11 @@ function FarmIconColor:applyNativeLogoSelectorSmallTextStyle(textElement, displa
 
     if wantedProfile ~= nil and wantedProfile ~= "" then
         if textElement.applyProfile ~= nil then
-            pcall(function()
-                textElement:applyProfile(wantedProfile)
-            end)
+            textElement:applyProfile(wantedProfile)
         end
 
         if textElement.setProfile ~= nil then
-            pcall(function()
-                textElement:setProfile(wantedProfile)
-            end)
+            textElement:setProfile(wantedProfile)
         end
 
         textElement.profile = wantedProfile
@@ -2275,9 +2119,7 @@ function FarmIconColor:applyNativeLogoSelectorSmallTextStyle(textElement, displa
         textElement.position[2] = oldY or textElement.position[2]
 
         if textElement.setPosition ~= nil then
-            pcall(function()
-                textElement:setPosition(textElement.position[1], textElement.position[2])
-            end)
+            textElement:setPosition(textElement.position[1], textElement.position[2])
         end
     end
 
@@ -2287,9 +2129,7 @@ function FarmIconColor:applyNativeLogoSelectorSmallTextStyle(textElement, displa
         textElement.size[2] = oldH or textElement.size[2]
 
         if textElement.setSize ~= nil then
-            pcall(function()
-                textElement:setSize(textElement.size[1], textElement.size[2])
-            end)
+            textElement:setSize(textElement.size[1], textElement.size[2])
         end
     end
 
@@ -2311,9 +2151,7 @@ function FarmIconColor:applyNativeLogoSelectorSmallTextStyle(textElement, displa
     end
 
     if textElement.setTextAlignment ~= nil and RenderText ~= nil and RenderText.ALIGN_CENTER ~= nil then
-        pcall(function()
-            textElement:setTextAlignment(RenderText.ALIGN_CENTER)
-        end)
+        textElement:setTextAlignment(RenderText.ALIGN_CENTER)
     end
 
     if RenderText ~= nil and RenderText.ALIGN_CENTER ~= nil then
@@ -2321,9 +2159,7 @@ function FarmIconColor:applyNativeLogoSelectorSmallTextStyle(textElement, displa
     end
 
     if textElement.setTextSize ~= nil then
-        pcall(function()
-            textElement:setTextSize(wantedTextSize)
-        end)
+        textElement:setTextSize(wantedTextSize)
     end
 
 
@@ -2397,13 +2233,7 @@ function FarmIconColor:rememberNativeSelectorOriginalState(selector)
     end
 
     if selector.getState ~= nil then
-        local success, state = pcall(function()
-            return selector:getState()
-        end)
-
-        if success then
-            selector.farmIconColorOriginalState = state
-        end
+        selector.farmIconColorOriginalState = selector:getState()
     else
         selector.farmIconColorOriginalState = selector.state
     end
@@ -2447,9 +2277,7 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
         selector.position = self:copySequence(selector.farmIconColorOriginalPosition)
 
         if selector.setPosition ~= nil then
-            pcall(function()
-                selector:setPosition(selector.position[1], selector.position[2])
-            end)
+            selector:setPosition(selector.position[1], selector.position[2])
         end
     end
 
@@ -2457,9 +2285,7 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
         selector.size = self:copySequence(selector.farmIconColorOriginalSize)
 
         if selector.setSize ~= nil then
-            pcall(function()
-                selector:setSize(selector.size[1], selector.size[2])
-            end)
+            selector:setSize(selector.size[1], selector.size[2])
         end
     end
 
@@ -2467,9 +2293,7 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
         selector.texts = self:copySequence(selector.farmIconColorOriginalTexts)
 
         if selector.setTexts ~= nil then
-            pcall(function()
-                selector:setTexts(selector.texts)
-            end)
+            selector:setTexts(selector.texts)
         end
     end
 
@@ -2484,9 +2308,7 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
         selector.state = selector.farmIconColorOriginalState
 
         if selector.setState ~= nil then
-            pcall(function()
-                selector:setState(selector.farmIconColorOriginalState)
-            end)
+            selector:setState(selector.farmIconColorOriginalState)
         end
     end
 
@@ -2497,15 +2319,11 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
 
         if selector.farmIconColorOriginalTextElementProfile ~= nil then
             if originalTextElement.applyProfile ~= nil then
-                pcall(function()
-                    originalTextElement:applyProfile(selector.farmIconColorOriginalTextElementProfile)
-                end)
+                originalTextElement:applyProfile(selector.farmIconColorOriginalTextElementProfile)
             end
 
             if originalTextElement.setProfile ~= nil then
-                pcall(function()
-                    originalTextElement:setProfile(selector.farmIconColorOriginalTextElementProfile)
-                end)
+                originalTextElement:setProfile(selector.farmIconColorOriginalTextElementProfile)
             end
 
             originalTextElement.profile = selector.farmIconColorOriginalTextElementProfile
@@ -2515,9 +2333,7 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
             originalTextElement.position = self:copySequence(selector.farmIconColorOriginalTextElementPosition)
 
             if originalTextElement.setPosition ~= nil then
-                pcall(function()
-                    originalTextElement:setPosition(originalTextElement.position[1], originalTextElement.position[2])
-                end)
+                originalTextElement:setPosition(originalTextElement.position[1], originalTextElement.position[2])
             end
         end
 
@@ -2525,17 +2341,13 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
             originalTextElement.size = self:copySequence(selector.farmIconColorOriginalTextElementSize)
 
             if originalTextElement.setSize ~= nil then
-                pcall(function()
-                    originalTextElement:setSize(originalTextElement.size[1], originalTextElement.size[2])
-                end)
+                originalTextElement:setSize(originalTextElement.size[1], originalTextElement.size[2])
             end
         end
 
         if selector.farmIconColorOriginalTextElementTextSize ~= nil then
             if originalTextElement.setTextSize ~= nil then
-                pcall(function()
-                    originalTextElement:setTextSize(selector.farmIconColorOriginalTextElementTextSize)
-                end)
+                originalTextElement:setTextSize(selector.farmIconColorOriginalTextElementTextSize)
             end
 
             originalTextElement.textSize = selector.farmIconColorOriginalTextElementTextSize
@@ -2552,13 +2364,9 @@ function FarmIconColor:restoreNativeLogoSelectorToOriginalParent()
     selector.farmIconColorNativeLogoSelector = false
 
     if selector.updateAbsolutePositionRec ~= nil then
-        pcall(function()
-            selector:updateAbsolutePositionRec()
-        end)
+        selector:updateAbsolutePositionRec()
     elseif selector.updateAbsolutePosition ~= nil then
-        pcall(function()
-            selector:updateAbsolutePosition()
-        end)
+        selector:updateAbsolutePosition()
     end
 
     FarmIconColor:debugPrint(string.format("[%s] Native farm logo selector restored to original GUI parent", self.MOD_NAME))
@@ -2685,15 +2493,11 @@ function FarmIconColor:prepareNativeLogoSelectorElement(selector, label)
     selector.size[2] = selectorH
 
     if selector.setPosition ~= nil then
-        pcall(function()
-            selector:setPosition(selectorX, selectorY)
-        end)
+        selector:setPosition(selectorX, selectorY)
     end
 
     if selector.setSize ~= nil then
-        pcall(function()
-            selector:setSize(selectorW, selectorH)
-        end)
+        selector:setSize(selectorW, selectorH)
     end
 
     self:showGuiElement(selector)
@@ -2720,13 +2524,9 @@ function FarmIconColor:prepareNativeLogoSelectorElement(selector, label)
     end
 
     if selector.updateAbsolutePositionRec ~= nil then
-        pcall(function()
-            selector:updateAbsolutePositionRec()
-        end)
+        selector:updateAbsolutePositionRec()
     elseif selector.updateAbsolutePosition ~= nil then
-        pcall(function()
-            selector:updateAbsolutePosition()
-        end)
+        selector:updateAbsolutePosition()
     end
 end
 
@@ -2744,17 +2544,13 @@ function FarmIconColor:updateNativeLogoSelectorState(selector)
     self.nativeLogoSelectorUpdating = true
 
     if selector.setTexts ~= nil then
-        pcall(function()
-            selector:setTexts(texts)
-        end)
+        selector:setTexts(texts)
     end
 
     selector.texts = texts
 
     if selector.setState ~= nil then
-        pcall(function()
-            selector:setState(currentIndex)
-        end)
+        selector:setState(currentIndex)
     end
 
     selector.state = currentIndex
@@ -2781,13 +2577,7 @@ function FarmIconColor:updateNativeLogoSelectorState(selector)
         local state = selector.state
 
         if selector.getState ~= nil then
-            local success, result = pcall(function()
-                return selector:getState()
-            end)
-
-            if success then
-                state = result
-            end
+            state = selector:getState()
         end
 
         FarmIconColor:setLogoInActiveFarmDialogByIndex(state)
@@ -3109,11 +2899,9 @@ function FarmIconColor:setSoloF9DownStateFromInput(f9Key)
         return
     end
 
-    local success, isPressed = pcall(function()
-        return Input.isKeyPressed(f9Key)
-    end)
+    local isPressed = Input.isKeyPressed(f9Key)
 
-    self.prototypeColorPickerHotkeyDown = success and isPressed == true
+    self.prototypeColorPickerHotkeyDown = isPressed == true
 end
 
 function FarmIconColor:checkPrototypeColorPickerHotkey()
@@ -3133,18 +2921,7 @@ function FarmIconColor:checkPrototypeColorPickerHotkey()
         return
     end
 
-    local success, isPressed = pcall(function()
-        return Input.isKeyPressed(f9Key)
-    end)
-
-    if not success then
-        if not self.prototypeColorPickerInputMissingLogged then
-            self.prototypeColorPickerInputMissingLogged = true
-            FarmIconColor:debugPrint(string.format("[%s] Solo color picker hotkey unavailable: %s", self.MOD_NAME, tostring(isPressed)))
-        end
-
-        return
-    end
+    local isPressed = Input.isKeyPressed(f9Key)
 
     if isPressed and not self.prototypeColorPickerHotkeyDown then
         self:openColorPickerPrototype()
@@ -3194,13 +2971,7 @@ function FarmIconColor:openColorPickerPrototype()
 
     FarmIconColor:debugPrint(string.format("[%s] Opening prototype color picker with %s for farmId=%s pendingFarmCreation=%s currentColor=%s presetCount=%s", self.MOD_NAME, self.PROTOTYPE_COLOR_PICKER_KEY_NAME, tostring(farmId), tostring(pendingFarmCreation), self:valueToString(customColor), tostring(#presetColors)))
 
-    local success, message = pcall(function()
-        ColorPickerDialog.show(self.onPrototypeColorPickerConfirmed, self, {farmId = farmId, pendingFarmCreation = pendingFarmCreation}, presetColors, nil, nil, customColor, true, false, true)
-    end)
-
-    if not success then
-        FarmIconColor:debugPrint(string.format("[%s] Prototype color picker open failed: %s", self.MOD_NAME, tostring(message)))
-    end
+    ColorPickerDialog.show(self.onPrototypeColorPickerConfirmed, self, {farmId = farmId, pendingFarmCreation = pendingFarmCreation}, presetColors, nil, nil, customColor, true, false, true)
 end
 
 
@@ -3754,11 +3525,9 @@ function FarmIconColor:getCurrentFarmIdSet()
         end
 
         if type(g_farmManager.getFarms) == "function" then
-            local success, farms = pcall(function()
-                return g_farmManager:getFarms()
-            end)
+            local farms = g_farmManager:getFarms()
 
-            if success and type(farms) == "table" then
+            if type(farms) == "table" then
                 for key, farm in pairs(farms) do
                     addFarmObject(key, farm)
                 end
@@ -4133,13 +3902,8 @@ function FarmIconColor:applyOverlayFields(object, color, fieldNames)
 
         if type(overlay) == "table" then
             if overlay.setColor ~= nil then
-                local success = pcall(function()
-                    overlay:setColor(color[1], color[2], color[3], color[4] or 1)
-                end)
-
-                if success then
-                    changed = changed + 1
-                end
+                overlay:setColor(color[1], color[2], color[3], color[4] or 1)
+                changed = changed + 1
             end
 
             if overlay.r ~= nil or overlay.g ~= nil or overlay.b ~= nil or overlay.a ~= nil then
@@ -4165,15 +3929,8 @@ function FarmIconColor:updateHotspotColors(hotspot)
         return 0
     end
 
-    local success = pcall(function()
-        hotspot:updateColors()
-    end)
-
-    if success then
-        return 1
-    end
-
-    return 0
+    hotspot:updateColors()
+    return 1
 end
 
 function FarmIconColor:applyHotspotColorMethods(hotspot, color)
@@ -4188,20 +3945,10 @@ function FarmIconColor:applyHotspotColorMethods(hotspot, color)
     }
 
     for _, methodName in ipairs(methodNames) do
-        if hotspot[methodName] ~= nil then
-            local success = pcall(function()
-                hotspot[methodName](hotspot, color)
-            end)
-
-            if not success then
-                success = pcall(function()
-                    hotspot[methodName](hotspot, color[1], color[2], color[3], color[4] or 1)
-                end)
-            end
-
-            if success then
-                changed = changed + 1
-            end
+        if type(hotspot[methodName]) == "function" then
+            -- MapHotspot:setColor(r, g, b): colour components, not a table.
+            hotspot[methodName](hotspot, color[1], color[2], color[3], color[4] or 1)
+            changed = changed + 1
         end
     end
 
@@ -4217,20 +3964,10 @@ function FarmIconColor:applyHotspotTextColorMethods(hotspot, color)
     }
 
     for _, methodName in ipairs(methodNames) do
-        if hotspot[methodName] ~= nil then
-            local success = pcall(function()
-                hotspot[methodName](hotspot, color)
-            end)
-
-            if not success then
-                success = pcall(function()
-                    hotspot[methodName](hotspot, color[1], color[2], color[3], color[4] or 1)
-                end)
-            end
-
-            if success then
-                changed = changed + 1
-            end
+        if type(hotspot[methodName]) == "function" then
+            -- MapHotspot:setColor(r, g, b): colour components, not a table.
+            hotspot[methodName](hotspot, color[1], color[2], color[3], color[4] or 1)
+            changed = changed + 1
         end
     end
 
@@ -4573,14 +4310,10 @@ function FarmIconColor:isCurrentUserFarmIconAdmin()
 
     -- A listen/self-hosted multiplayer game is authoritative locally: the host is the admin.
     if mission.getIsServer ~= nil and mission.getIsClient ~= nil then
-        local successServer, isServer = pcall(function()
-            return mission:getIsServer()
-        end)
-        local successClient, isClient = pcall(function()
-            return mission:getIsClient()
-        end)
+        local isServer = mission:getIsServer()
+        local isClient = mission:getIsClient()
 
-        if successServer and successClient and isServer == true and isClient == true then
+        if isServer == true and isClient == true then
             return true
         end
     end
@@ -4601,19 +4334,15 @@ function FarmIconColor:isCurrentUserFarmIconAdmin()
         return false
     end
 
-    local successUser, user = pcall(function()
-        return userManager:getUserByUserId(userId)
-    end)
+    local user = userManager:getUserByUserId(userId)
 
-    if not successUser or type(user) ~= "table" or user.getIsMasterUser == nil then
+    if type(user) ~= "table" or user.getIsMasterUser == nil then
         return false
     end
 
-    local successAdmin, isAdmin = pcall(function()
-        return user:getIsMasterUser()
-    end)
+    local isAdmin = user:getIsMasterUser()
 
-    return successAdmin and isAdmin == true
+    return isAdmin == true
 end
 
 -- Server side: may the user behind this connection change this farm's visuals?
@@ -4625,19 +4354,15 @@ function FarmIconColor:isConnectionAllowedToEditFarm(connection, farmId)
         return false
     end
 
-    local okUser, user = pcall(function()
-        return userManager:getUserByConnection(connection)
-    end)
+    local user = userManager:getUserByConnection(connection)
 
-    if not okUser or type(user) ~= "table" then
+    if type(user) ~= "table" or user.getIsMasterUser == nil then
         return false
     end
 
-    local okMaster, isMaster = pcall(function()
-        return user:getIsMasterUser()
-    end)
+    local isMaster = user:getIsMasterUser()
 
-    if okMaster and isMaster == true then
+    if isMaster == true then
         return true
     end
 
@@ -4645,11 +4370,9 @@ function FarmIconColor:isConnectionAllowedToEditFarm(connection, farmId)
         return false
     end
 
-    local okFarm, farm = pcall(function()
-        return g_farmManager:getFarmByUserId(user:getId())
-    end)
+    local farm = g_farmManager:getFarmByUserId(user:getId())
 
-    return okFarm and type(farm) == "table" and tonumber(farm.farmId) == tonumber(farmId)
+    return type(farm) == "table" and tonumber(farm.farmId) == tonumber(farmId)
 end
 
 -- Server side: resend the authoritative visuals of one farm to one client.
@@ -4672,21 +4395,17 @@ end
 -- True while the player is typing (farm name / password field, on-screen keyboard dialog).
 function FarmIconColor:isTextInputActive()
     if g_gui ~= nil and g_gui.currentListener ~= nil and TextInputDialog ~= nil then
-        local okIsa, isTextDialog = pcall(function()
-            return g_gui.currentListener.isa ~= nil and g_gui.currentListener:isa(TextInputDialog)
-        end)
+        local isTextDialog = g_gui.currentListener.isa ~= nil and g_gui.currentListener:isa(TextInputDialog)
 
-        if okIsa and isTextDialog == true then
+        if isTextDialog == true then
             return true
         end
     end
 
     if FocusManager ~= nil and FocusManager.getFocusedElement ~= nil then
-        local okFocus, focused = pcall(function()
-            return FocusManager:getFocusedElement()
-        end)
+        local focused = FocusManager:getFocusedElement()
 
-        if okFocus and type(focused) == "table" and focused.isCapturingInput == true then
+        if type(focused) == "table" and focused.isCapturingInput == true then
             return true
         end
     end
@@ -4749,10 +4468,8 @@ function FarmIconColor:checkCustomLogoImportHotkey()
 
     if not canImport then
         if Input ~= nil and Input.isKeyPressed ~= nil and insertKey ~= nil then
-            local success, pressed = pcall(function()
-                return Input.isKeyPressed(insertKey)
-            end)
-            self.customLogoImportKeyDown = success and pressed == true
+            local pressed = Input.isKeyPressed(insertKey)
+            self.customLogoImportKeyDown = pressed == true
         else
             self.customLogoImportKeyDown = false
         end
@@ -4767,13 +4484,7 @@ function FarmIconColor:checkCustomLogoImportHotkey()
         return
     end
 
-    local success, pressed = pcall(function()
-        return Input.isKeyPressed(insertKey)
-    end)
-
-    if not success then
-        return
-    end
+    local pressed = Input.isKeyPressed(insertKey)
 
     if pressed and not self.customLogoImportKeyDown then
         self:importCustomLogosFromFolder()
@@ -4811,21 +4522,15 @@ function FarmIconColor:ensureFarmDialogImportButtonMouseRegistration(importButto
     importButton.visible = true
 
     if importButton.setDisabled ~= nil then
-        pcall(function()
-            importButton:setDisabled(false)
-        end)
+        importButton:setDisabled(false)
     end
 
     if importButton.setVisible ~= nil then
-        pcall(function()
-            importButton:setVisible(true)
-        end)
+        importButton:setVisible(true)
     end
 
     if importButton.setIsActive ~= nil then
-        pcall(function()
-            importButton:setIsActive(true)
-        end)
+        importButton:setIsActive(true)
     end
 end
 
@@ -4876,9 +4581,7 @@ function FarmIconColor:hookFarmDialogImportMouseClick(dialog, importButton)
                 guiSelf.farmIconColorImportMousePressed = true
 
                 if activeButton.setPressed ~= nil then
-                    pcall(function()
-                        activeButton:setPressed(true)
-                    end)
+                    activeButton:setPressed(true)
                 end
 
                 return true
@@ -4889,9 +4592,7 @@ function FarmIconColor:hookFarmDialogImportMouseClick(dialog, importButton)
                 guiSelf.farmIconColorImportMousePressed = false
 
                 if activeButton.setPressed ~= nil then
-                    pcall(function()
-                        activeButton:setPressed(false)
-                    end)
+                    activeButton:setPressed(false)
                 end
 
                 if inside and wasPressed then
@@ -4933,9 +4634,9 @@ function FarmIconColor:getGuiButtonTextWidth(button)
         text = (utf8ToUpper ~= nil and utf8ToUpper(text)) or string.upper(text)
     end
 
-    local ok, width = pcall(getTextWidth, textSize, text)
+    local width = getTextWidth(textSize, text)
 
-    if ok and type(width) == "number" and width > 0 then
+    if type(width) == "number" and width > 0 then
         return width
     end
 
@@ -5030,9 +4731,7 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     importButton.layoutIgnore = true
 
     if importButton.setSize ~= nil and height ~= nil then
-        pcall(function()
-            importButton:setSize(width, height)
-        end)
+        importButton:setSize(width, height)
     elseif type(importButton.size) == "table" then
         importButton.size[1] = width
         if height ~= nil then
@@ -5041,9 +4740,7 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     end
 
     if importButton.setPosition ~= nil then
-        pcall(function()
-            importButton:setPosition(newX, y)
-        end)
+        importButton:setPosition(newX, y)
     else
         importButton.position = importButton.position or {newX, y}
         importButton.position[1] = newX
@@ -5051,13 +4748,9 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
     end
 
     if importButton.updateAbsolutePositionRec ~= nil then
-        pcall(function()
-            importButton:updateAbsolutePositionRec()
-        end)
+        importButton:updateAbsolutePositionRec()
     elseif importButton.updateAbsolutePosition ~= nil then
-        pcall(function()
-            importButton:updateAbsolutePosition()
-        end)
+        importButton:updateAbsolutePosition()
     end
 end
 
@@ -5084,11 +4777,9 @@ function FarmIconColor:ensureActiveFarmDialogImportButton()
                 local importButton = colorButton.farmIconColorImportButtonElement
 
                 if isAdmin and type(importButton) ~= "table" and colorButton.clone ~= nil and type(colorButton.parent) == "table" then
-                    local success, cloned = pcall(function()
-                        return colorButton:clone(colorButton.parent, false, true)
-                    end)
+                    local cloned = colorButton:clone(colorButton.parent, false, true)
 
-                    if success and type(cloned) == "table" then
+                    if type(cloned) == "table" then
                         importButton = cloned
                         colorButton.farmIconColorImportButtonElement = importButton
                         importButton.farmIconColorImportButton = true
@@ -5102,9 +4793,7 @@ function FarmIconColor:ensureActiveFarmDialogImportButton()
                         self:setGuiElementText(importButton, self:getTranslatedText("input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO", "Import"))
 
                         if importButton.setInputAction ~= nil then
-                            pcall(function()
-                                importButton:setInputAction(self.CUSTOM_LOGO_IMPORT_ACTION_NAME)
-                            end)
+                            importButton:setInputAction(self.CUSTOM_LOGO_IMPORT_ACTION_NAME)
                         else
                             importButton.inputActionName = self.CUSTOM_LOGO_IMPORT_ACTION_NAME
                         end
@@ -5115,9 +4804,7 @@ function FarmIconColor:ensureActiveFarmDialogImportButton()
                         self:showGuiElementWithParents(importButton)
 
                         if type(importButton.parent) == "table" and importButton.parent.invalidateLayout ~= nil then
-                            pcall(function()
-                                importButton.parent:invalidateLayout()
-                            end)
+                            importButton.parent:invalidateLayout()
                         end
 
                         if not self.farmDialogImportButtonLogged then
@@ -5129,9 +4816,7 @@ function FarmIconColor:ensureActiveFarmDialogImportButton()
                     self:setGuiElementText(importButton, self:getTranslatedText("input_FARMICONCOLOR_IMPORT_CUSTOM_LOGO", "Import"))
 
                     if importButton.setInputAction ~= nil then
-                        pcall(function()
-                            importButton:setInputAction(self.CUSTOM_LOGO_IMPORT_ACTION_NAME)
-                        end)
+                        importButton:setInputAction(self.CUSTOM_LOGO_IMPORT_ACTION_NAME)
                     else
                         importButton.inputActionName = self.CUSTOM_LOGO_IMPORT_ACTION_NAME
                     end
@@ -5352,15 +5037,11 @@ function FarmIconColor:hideGuiElement(element)
     element.farmIconColorHidden = true
 
     if element.setVisible ~= nil then
-        pcall(function()
-            element:setVisible(false)
-        end)
+        element:setVisible(false)
     end
 
     if element.setDisabled ~= nil then
-        pcall(function()
-            element:setDisabled(true)
-        end)
+        element:setDisabled(true)
     end
 
     element.visible = false
@@ -5379,15 +5060,11 @@ function FarmIconColor:showGuiElement(element)
     element.disabled = false
 
     if element.setVisible ~= nil then
-        pcall(function()
-            element:setVisible(true)
-        end)
+        element:setVisible(true)
     end
 
     if element.setDisabled ~= nil then
-        pcall(function()
-            element:setDisabled(false)
-        end)
+        element:setDisabled(false)
     end
 end
 
@@ -5534,13 +5211,8 @@ function FarmIconColor:setGuiElementText(element, text)
     end
 
     if element.setText ~= nil then
-        local success = pcall(function()
-            element:setText(text)
-        end)
-
-        if success then
-            return
-        end
+        element:setText(text)
+        return
     end
 
     element.text = text
@@ -6071,11 +5743,9 @@ function FarmIconColor:isGuiElementSelected(element)
     end
 
     if element.getIsSelected ~= nil then
-        local success, result = pcall(function()
-            return element:getIsSelected()
-        end)
+        local result = element:getIsSelected()
 
-        if success and result == true then
+        if result == true then
             return true
         end
     end
@@ -6093,11 +5763,9 @@ function FarmIconColor:getGuiElementOverlayColor(element)
     end
 
     if GuiOverlay ~= nil and GuiOverlay.getOverlayColor ~= nil then
-        local success, color = pcall(function()
-            return GuiOverlay.getOverlayColor(element.overlay, GuiOverlay.STATE_NORMAL)
-        end)
+        local color = GuiOverlay.getOverlayColor(element.overlay, GuiOverlay.STATE_NORMAL)
 
-        if success and type(color) == "table" then
+        if type(color) == "table" then
             return self:copyColor(color)
         end
     end
@@ -6451,11 +6119,9 @@ function FarmIconColor:getLogoDisplayName(logoName)
     local l10nKey = self.logoL10n ~= nil and self.logoL10n[logoName] or nil
 
     if l10nKey ~= nil and g_i18n ~= nil and g_i18n.getText ~= nil then
-        local success, translatedText = pcall(function()
-            return g_i18n:getText(l10nKey)
-        end)
+        local translatedText = g_i18n:getText(l10nKey)
 
-        if success and translatedText ~= nil and translatedText ~= "" and translatedText ~= l10nKey and string.sub(tostring(translatedText), 1, 8) ~= "Missing " then
+        if translatedText ~= nil and translatedText ~= "" and translatedText ~= l10nKey and string.sub(tostring(translatedText), 1, 8) ~= "Missing " then
             return translatedText
         end
     end
@@ -6652,11 +6318,9 @@ function FarmIconColor:getConfiguredColorForFarmId(farmId)
 
     if farm ~= nil then
         if farm.getColor ~= nil then
-            local success, color = pcall(function()
-                return farm:getColor()
-            end)
+            local color = farm:getColor()
 
-            if success and type(color) == "table" then
+            if type(color) == "table" then
                 return color
             end
         end
@@ -6677,11 +6341,9 @@ function FarmIconColor:getCurrentColorForFarmId(farmId)
     end
 
     if farm.getColor ~= nil then
-        local success, color = pcall(function()
-            return farm:getColor()
-        end)
+        local color = farm:getColor()
 
-        if success and type(color) == "table" then
+        if type(color) == "table" then
             return color
         end
     end
@@ -6779,36 +6441,10 @@ function FarmIconColor:applyGuiImageElementColor(element, color)
     end
 
     if element.setImageColor ~= nil then
-        local success = pcall(function()
-            element:setImageColor(self:getGuiNormalState(), color[1], color[2], color[3], color[4] or 1)
-        end)
-
-        if not success then
-            success = pcall(function()
-                element:setImageColor(color)
-            end)
-        end
-
-        if success then
-            changed = changed + 1
-        end
+        element:setImageColor(self:getGuiNormalState(), color[1], color[2], color[3], color[4] or 1)
+        changed = changed + 1
     end
 
-    if element.setOverlayColor ~= nil then
-        local success = pcall(function()
-            element:setOverlayColor(self:getGuiNormalState(), color[1], color[2], color[3], color[4] or 1)
-        end)
-
-        if not success then
-            success = pcall(function()
-                element:setOverlayColor(color)
-            end)
-        end
-
-        if success then
-            changed = changed + 1
-        end
-    end
 
 
 
@@ -6874,14 +6510,7 @@ function FarmIconColor:applyCustomLogoTexture(element)
             return 0
         end
 
-        local success, errorMessage = pcall(function()
-            element:setImageFilename(filename)
-        end)
-
-        if not success then
-            FarmIconColor:debugPrint(string.format("[%s] setImageFilename failed for farm logo texture=%s error=%s", self.MOD_NAME, tostring(filename), tostring(errorMessage)))
-            return 0
-        end
+        element:setImageFilename(filename)
         changed = changed + 1
     end
 
@@ -7047,13 +6676,8 @@ function FarmIconColor:applyGuiOverlayColor(overlay, color)
     local changed = 0
 
     if overlay.setColor ~= nil then
-        local success = pcall(function()
-            overlay:setColor(color[1], color[2], color[3], color[4] or 1)
-        end)
-
-        if success then
-            changed = changed + 1
-        end
+        overlay:setColor(color[1], color[2], color[3], color[4] or 1)
+        changed = changed + 1
     end
 
     if overlay.r ~= nil or overlay.g ~= nil or overlay.b ~= nil or overlay.a ~= nil then
@@ -7138,18 +6762,7 @@ function FarmIconColor:checkGuiInspectorHotkey()
         return
     end
 
-    local success, isPressed = pcall(function()
-        return Input.isKeyPressed(keyCode)
-    end)
-
-    if not success then
-        if not self.guiInspectorInputMissingLogged then
-            self.guiInspectorInputMissingLogged = true
-            FarmIconColor:debugPrint(string.format("[%s] GUI inspector unavailable: %s", self.MOD_NAME, tostring(isPressed)))
-        end
-
-        return
-    end
+    local isPressed = Input.isKeyPressed(keyCode)
 
     if isPressed and not self.guiInspectorKeyDown then
         self:debugDumpCurrentGuiInspector("F10")

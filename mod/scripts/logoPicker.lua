@@ -47,7 +47,7 @@ function D:onCreate()
     for button, action in pairs({[self.importButton or false] = FarmIconColor.CUSTOM_LOGO_IMPORT_ACTION_NAME,
                                  [self.deleteButton or false] = P.DELETE_ACTION_NAME}) do
         if button and button.setInputAction ~= nil then
-            pcall(button.setInputAction, button, action)
+            button:setInputAction(action)
         end
     end
 end
@@ -72,9 +72,7 @@ function D:onOpen()
     self:reloadAndSelect(self.selectedIndex)
 
     if FocusManager ~= nil and FocusManager.setFocus ~= nil then
-        pcall(function()
-            FocusManager:setFocus(self.logoList)
-        end)
+        FocusManager:setFocus(self.logoList)
     end
 end
 
@@ -87,13 +85,11 @@ function D:reloadAndSelect(index)
 
     index = math.max(1, math.min(#self.logos, index or 1))
     self.selectedIndex = index
-    pcall(function()
-        if self.logoList.setSelectedItem ~= nil then
-            self.logoList:setSelectedItem(1, index, true, true)
-        elseif self.logoList.setSelectedIndex ~= nil then
-            self.logoList:setSelectedIndex(index, true)
-        end
-    end)
+    if self.logoList.setSelectedItem ~= nil then
+        self.logoList:setSelectedItem(1, index, true, true)
+    elseif self.logoList.setSelectedIndex ~= nil then
+        self.logoList:setSelectedIndex(index, true)
+    end
 
     self:updateDeleteButton()
 end
@@ -194,8 +190,8 @@ end
 
 local function getCellChild(cell, name)
     if cell.getAttribute ~= nil then
-        local ok, element = pcall(cell.getAttribute, cell, name)
-        if ok and element ~= nil then
+        local element = cell:getAttribute(name)
+        if element ~= nil then
             return element
         end
     end
@@ -254,9 +250,9 @@ end
 
 function D:getSelectedLogo()
     if self.logoList ~= nil and self.logoList.getSelectedIndexInSection ~= nil then
-        local ok, index = pcall(self.logoList.getSelectedIndexInSection, self.logoList)
+        local index = self.logoList:getSelectedIndexInSection()
 
-        if ok and index ~= nil and index > 0 then
+        if index ~= nil and index > 0 then
             self.selectedIndex = index
         end
     end
@@ -300,22 +296,19 @@ function P:loadDialog()
         return true
     end
 
-    local ok, result = pcall(function()
-        g_gui:loadProfiles(self.MOD_DIRECTORY .. "gui/logoPickerProfiles.xml")
-        local instance = D.new()
-        local gui = g_gui:loadGui(self.MOD_DIRECTORY .. "gui/logoPickerDialog.xml", self.DIALOG_NAME, instance)
-        return gui ~= nil and instance or nil
-    end)
+    g_gui:loadProfiles(self.MOD_DIRECTORY .. "gui/logoPickerProfiles.xml")
+    local instance = D.new()
+    local gui = g_gui:loadGui(self.MOD_DIRECTORY .. "gui/logoPickerDialog.xml", self.DIALOG_NAME, instance)
 
-    if ok and result ~= nil then
-        D.INSTANCE = result
-        self.dialog = result
+    if gui ~= nil then
+        D.INSTANCE = instance
+        self.dialog = instance
         return true
     end
 
     if not self.loadErrorLogged and Logging ~= nil and Logging.warning ~= nil then
         self.loadErrorLogged = true
-        Logging.warning("[FS25_farmIconColor] Logo picker dialog could not be loaded: %s", tostring(result))
+        Logging.warning("[FS25_farmIconColor] Logo picker dialog could not be loaded")
     end
 
     return false
@@ -474,19 +467,15 @@ function P:placeInFooterLayout(button, colorButton)
                 and element.farmIconColorFooterSeparator ~= true
                 and element.visible ~= false
                 and (element.getIsVisible == nil or element:getIsVisible()) then
-                local ok, cloned = pcall(function()
-                    return element:clone(box, false, true)
-                end)
+                local cloned = element:clone(box, false, true)
 
-                if ok and type(cloned) == "table" then
+                if type(cloned) == "table" then
                     separator = cloned
                     cloned.farmIconColorFooterSeparator = true
                     button.farmIconColorFooterSeparator = cloned
 
                     if cloned.setVisible ~= nil then
-                        pcall(function()
-                            cloned:setVisible(true)
-                        end)
+                        cloned:setVisible(true)
                     end
                 end
 
@@ -538,9 +527,7 @@ function P:placeInFooterLayout(button, colorButton)
         local width, height = fic:getFittedFooterButtonSize(button, colorButton)
 
         if button.setSize ~= nil and height ~= nil then
-            pcall(function()
-                button:setSize(width, height)
-            end)
+            button:setSize(width, height)
         elseif type(button.size) == "table" then
             button.size[1] = width
         end
@@ -578,9 +565,7 @@ function P:placeInFooterLayout(button, colorButton)
                 element.disabled = false
 
                 if element.setDisabled ~= nil then
-                    pcall(function()
-                        element:setDisabled(false)
-                    end)
+                    element:setDisabled(false)
                 end
             end
 
@@ -588,9 +573,7 @@ function P:placeInFooterLayout(button, colorButton)
                 element.visible = wanted
 
                 if element.setVisible ~= nil then
-                    pcall(function()
-                        element:setVisible(wanted)
-                    end)
+                    element:setVisible(wanted)
                 end
 
                 changed = true
@@ -599,9 +582,7 @@ function P:placeInFooterLayout(button, colorButton)
     end
 
     if changed then
-        pcall(function()
-            box:invalidateLayout()
-        end)
+        box:invalidateLayout()
     end
 
     return true
@@ -627,11 +608,9 @@ function P:ensureFooterButton(dialog)
             return nil
         end
 
-        local ok, cloned = pcall(function()
-            return colorButton:clone(colorButton.parent, false, true)
-        end)
+        local cloned = colorButton:clone(colorButton.parent, false, true)
 
-        if not ok or type(cloned) ~= "table" then
+        if type(cloned) ~= "table" then
             return nil
         end
 
@@ -649,9 +628,7 @@ function P:ensureFooterButton(dialog)
         fic:setGuiElementText(button, fic:getTranslatedText("input_" .. self.ACTION_NAME, "Logos"))
 
         if button.setInputAction ~= nil then
-            pcall(function()
-                button:setInputAction(self.ACTION_NAME)
-            end)
+            button:setInputAction(self.ACTION_NAME)
         else
             button.inputActionName = self.ACTION_NAME
         end
@@ -724,8 +701,7 @@ function P:pollDialogKeys()
         [Input.KEY_delete or false] = function() self.dialog:onClickDelete() end
     }) do
         if keyCode then
-            local ok, pressed = pcall(Input.isKeyPressed, keyCode)
-            pressed = ok and pressed == true
+            local pressed = Input.isKeyPressed(keyCode) == true
 
             if pressed and not self.dialogKeyStates[keyCode] then
                 FarmIconColor:safeCall("logo picker key", callback)
@@ -748,9 +724,7 @@ end
 
 function P:deleteMap()
     if self:isDialogOpen() then
-        pcall(function()
-            g_gui:closeDialogByName(self.DIALOG_NAME)
-        end)
+        g_gui:closeDialogByName(self.DIALOG_NAME)
     end
 end
 
@@ -783,8 +757,7 @@ function P:update(dt)
     local keyCode = Input ~= nil and Input.KEY_l or nil
 
     if keyCode ~= nil and Input.isKeyPressed ~= nil then
-        local ok, pressed = pcall(Input.isKeyPressed, keyCode)
-        pressed = ok and pressed == true
+        local pressed = Input.isKeyPressed(keyCode) == true
 
         if pressed and not self.openKeyDown and not fic:isTextInputActive() then
             self:open()
