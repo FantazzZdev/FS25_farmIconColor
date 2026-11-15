@@ -8,64 +8,73 @@
 
     <description>
         <en>
-            <![CDATA[Farm Icon Color allows you to give every farm a clear visual identity in Farming Simulator 25.
+            <![CDATA[Farm Icon Color gives every farm a real visual identity in Farming Simulator 25.
 
-With this mod, you can choose a custom farm icon and apply your own color. The selected icons and colors are visible in the multiplayer menu, in the farm list, on the map and through in-game markers.
-
-The mod is especially useful in multiplayer games with several players, making it easier to quickly identify each farm. It can also be used in singleplayer to add more customization to your farm.
+Choose a logo for your farm and apply the colour of your choice. Logos and colours are shown in the multiplayer menu, in the farm list, on the map and on in-game markers. Perfect in multiplayer to recognise each farm at a glance, and in singleplayer to personalise your own farm.
 
 Features:
-- Select a custom farm icon.
-- Change the farm color.
-- Display the custom icon in the farm creation and editing menu.
-- Display farm colors on the map.
-- Improve visual farm identification in singleplayer and multiplayer.
-- Custom logos: create a logo with the Farm Icon Color logo converter, put the .xml file in modSettings/FS25_farmIconColor/customLogos/, open Logos and press Import (admin). The logo is saved in the savegame and sent automatically to every player of the server.
+- 34 built-in logos, chosen from a grid (Logos button in the farm window).
+- Custom farm colour, applied to the logo, the map and the markers.
+- Custom logos: import your own logos (admin). They are saved in the savegame and sent automatically to every player, dedicated servers included.
+- Coloured logos keep their own colours; white logos take the farm colour.
+- Delete a custom logo for every player (admin).
+- Singleplayer, multiplayer and dedicated server.
 
-Inputs:
-- In singleplayer: press F9 to open the farm color customization window.
-- In the farm creation or editing menu: click Logos (L) or the logo itself to pick a logo from a grid; the left/right arrows still work.
-- In the logo window (admin): Import (INSERT) adds the custom logos of the customLogos folder, Delete (DEL) removes a custom logo.]]>
+Custom logos:
+1. Convert your image (PNG, JPG, WEBP, SVG or DDS) with the Farm Icon Color logo converter.
+2. Put the .xml file in Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/
+3. In game, open Logos and press Import.
+
+Controls:
+- Farm creation/editing window: Logos (L) or click the logo to open the logo grid.
+- Logo window: Confirm (Enter), Back (Esc); admin: Import (INSERT), Delete (DEL, press twice).
+- Singleplayer: F9 opens the farm colour customisation.]]>
         </en>
         <fr>
-            <![CDATA[Icônes De Fermes Personnalisées permet de donner une vraie identité visuelle à chaque ferme dans Farming Simulator 25.
+            <![CDATA[Icônes De Fermes Personnalisées donne une vraie identité visuelle à chaque ferme dans Farming Simulator 25.
 
-Avec ce mod, vous pouvez choisir un logo personnalisé pour votre ferme et appliquer la couleur de votre choix. Les logos et les couleurs selectionnés sont visibles dans le menu multijoueur, dans la liste des fermes, sur la carte et via les repères en jeu.
-
-Le mod est particulierement utile dans les parties multijoueur avec plusieurs joueurs, afin de differencier rapidement chaque exploitation. Il peut également etre utilisé en solo pour personnaliser davantage votre ferme.
+Choisissez un logo pour votre ferme et appliquez la couleur de votre choix. Logos et couleurs sont visibles dans le menu multijoueur, dans la liste des fermes, sur la carte et sur les repères en jeu. Idéal en multijoueur pour reconnaître chaque exploitation d'un coup d'œil, et en solo pour personnaliser votre ferme.
 
 Fonctionnalités :
-- Sélection d'un logo de ferme personnalisé.
-- Modification de la couleur de la ferme.
-- Affichage du logo personnalisé dans le menu de création et de modification de ferme.
-- Affichage des couleurs de ferme sur la carte.
-- Meilleure identification visuelle des fermes en solo et en multijoueur.
-- Logos personnalisés : créez un logo avec le convertisseur Farm Icon Color, placez le fichier .xml dans modSettings/FS25_farmIconColor/customLogos/, ouvrez Logos puis appuyez sur Importer (admin). Le logo est enregistré dans la sauvegarde et envoyé automatiquement à tous les joueurs du serveur.
+- 34 logos intégrés, à choisir dans une grille (bouton Logos dans la fenêtre de ferme).
+- Couleur de ferme personnalisée, appliquée au logo, à la carte et aux repères.
+- Logos personnalisés : importez vos propres logos (admin). Ils sont enregistrés dans la sauvegarde et envoyés automatiquement à tous les joueurs, serveurs dédiés compris.
+- Les logos en couleurs gardent leurs couleurs ; les logos blancs prennent la couleur de la ferme.
+- Suppression d'un logo personnalisé pour tous les joueurs (admin).
+- Solo, multijoueur et serveur dédié.
 
-Entrées :
-- En solo : appuyez sur F9 pour ouvrir la fenêtre de personnalisation de la couleur de ferme.
-- Dans le menu de création ou de modification de ferme : cliquez sur Logos (L) ou sur le logo pour le choisir dans une grille ; les flèches gauche/droite fonctionnent toujours.
-- Dans la fenêtre des logos (admin) : Importer (INSER) ajoute les logos du dossier customLogos, Supprimer (SUPPR) retire un logo personnalisé.]]>
+Logos personnalisés :
+1. Convertissez votre image (PNG, JPG, WEBP, SVG ou DDS) avec le convertisseur de logos Farm Icon Color.
+2. Placez le fichier .xml dans Documents/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/
+3. En jeu, ouvrez Logos puis appuyez sur Importer.
+
+Commandes :
+- Fenêtre de création/modification de ferme : Logos (L) ou clic sur le logo pour ouvrir la grille des logos.
+- Fenêtre des logos : Valider (Entrée), Retour (Échap) ; admin : Importer (INSER), Supprimer (SUPPR, deux appuis).
+- En solo : F9 ouvre la personnalisation de la couleur de ferme.]]>
         </fr>
         <de>
-            <![CDATA[Bauernhof-Symbolfarbe ermoeglicht es, jedem Hof in Farming Simulator 25 eine klare visuelle Identitaet zu geben.
+            <![CDATA[Bauernhof-Symbolfarbe gibt jedem Hof in Farming Simulator 25 eine echte visuelle Identität.
 
-Mit diesem Mod kannst du ein individuelles Hofsymbol auswaehlen und deine eigene Farbe festlegen. Die ausgewaehlten Symbole und Farben werden im Mehrspieler-Menue, in der Hofliste, auf der Karte und bei den Markierungen im Spiel angezeigt.
-
-Der Mod ist besonders nuetzlich in Mehrspieler-Partien mit mehreren Spielern, da jeder Hof schneller und einfacher erkannt werden kann. Er kann auch im Einzelspieler-Modus verwendet werden, um den eigenen Hof staerker zu personalisieren.
+Wähle ein Logo für deinen Hof und lege die Farbe deiner Wahl fest. Logos und Farben werden im Mehrspieler-Menü, in der Hofliste, auf der Karte und bei den Markierungen im Spiel angezeigt. Ideal im Mehrspieler-Modus, um jeden Hof auf einen Blick zu erkennen, und im Einzelspieler-Modus, um den eigenen Hof zu personalisieren.
 
 Funktionen:
-- Auswahl eines individuellen Hofsymbols.
-- Aenderung der Hoffarbe.
-- Anzeige des individuellen Symbols im Menue zum Erstellen und Bearbeiten eines Hofes.
-- Anzeige der Hoffarben auf der Karte.
-- Bessere visuelle Erkennung von Hoefen im Einzelspieler- und Mehrspieler-Modus.
-- Eigene Logos: Logo mit dem Farm Icon Color Logo-Konverter erstellen, die .xml-Datei in modSettings/FS25_farmIconColor/customLogos/ ablegen, Logos oeffnen und Importieren druecken (Admin). Das Logo wird im Spielstand gespeichert und automatisch an alle Spieler des Servers gesendet.
+- 34 integrierte Logos, auswählbar in einem Raster (Schaltfläche Logos im Hof-Fenster).
+- Eigene Hoffarbe für Logo, Karte und Markierungen.
+- Eigene Logos: Importiere deine eigenen Logos (Admin). Sie werden im Spielstand gespeichert und automatisch an alle Spieler gesendet, auch auf dedizierten Servern.
+- Farbige Logos behalten ihre Farben; weiße Logos übernehmen die Hoffarbe.
+- Löschen eines eigenen Logos für alle Spieler (Admin).
+- Einzelspieler, Mehrspieler und dedizierter Server.
 
-Eingaben:
-- Im Einzelspieler-Modus: Druecke F9, um das Fenster zur Anpassung der Hoffarbe zu oeffnen.
-- Im Menue zum Erstellen oder Bearbeiten eines Hofes: Klicke auf Logos (L) oder auf das Logo, um es aus einem Raster auszuwaehlen; die Pfeile links/rechts funktionieren weiterhin.
-- Im Logo-Fenster (Admin): Importieren (EINFG) fuegt die Logos aus dem Ordner customLogos hinzu, Loeschen (ENTF) entfernt ein eigenes Logo.]]>
+Eigene Logos:
+1. Wandle dein Bild (PNG, JPG, WEBP, SVG oder DDS) mit dem Farm Icon Color Logo-Konverter um.
+2. Lege die .xml-Datei in Dokumente/My Games/FarmingSimulator2025/modSettings/FS25_farmIconColor/customLogos/ ab.
+3. Öffne im Spiel Logos und drücke Importieren.
+
+Steuerung:
+- Fenster zum Erstellen/Bearbeiten eines Hofes: Logos (L) oder Klick auf das Logo öffnet das Logo-Raster.
+- Logo-Fenster: Bestätigen (Enter), Zurück (Esc); Admin: Importieren (EINFG), Löschen (ENTF, zweimal drücken).
+- Einzelspieler: F9 öffnet die Anpassung der Hoffarbe.]]>
         </de>
     </description>
 
