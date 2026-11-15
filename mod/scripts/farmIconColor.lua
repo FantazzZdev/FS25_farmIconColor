@@ -4728,7 +4728,7 @@ function FarmIconColor:positionFarmDialogImportButton(importButton, colorButton)
 
     -- Keep the button out of a parent BoxLayout: it sits exactly to the left
     -- of the existing Color button.
-    importButton.layoutIgnore = true
+    importButton.ignoreLayout = true
 
     if importButton.setSize ~= nil and height ~= nil then
         importButton:setSize(width, height)

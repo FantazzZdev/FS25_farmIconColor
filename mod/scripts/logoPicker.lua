@@ -517,8 +517,9 @@ function P:placeInFooterLayout(button, colorButton)
         changed = true
     end
 
-    if button.layoutIgnore == true then
-        button.layoutIgnore = false
+    -- BoxLayoutElement skips elements flagged 'ignoreLayout'.
+    if button.ignoreLayout == true then
+        button.ignoreLayout = false
         changed = true
     end
 
@@ -533,6 +534,22 @@ function P:placeInFooterLayout(button, colorButton)
         end
 
         changed = true
+    end
+
+    -- An element is laid out when visible but only drawn when its alpha > 0
+    -- (GuiElement:getIsVisibleNonRec). Clones keep the alpha of the moment they
+    -- were made (0 during the dialog fade-in) and the dialog fade does not know
+    -- them: follow the Color button's alpha.
+    local alpha = tonumber(colorButton.alpha) or 1
+
+    for _, element in ipairs({button, separator}) do
+        if type(element) == "table" and element.alpha ~= alpha then
+            if element.setAlpha ~= nil then
+                element:setAlpha(alpha)
+            else
+                element.alpha = alpha
+            end
+        end
     end
 
     -- A separator is shown only between two visible buttons (native look).
