@@ -48,7 +48,8 @@ Conseils : une partie propre (argent normal, pas de mods qui se voient à l'écr
 
 ## 4. Vérifications avant envoi
 
-- [ ] Version `1.1.0.0` dans `modDesc.xml` (déjà fait).
+- [ ] Version `1.1.0.0` et `descVersion="116"` (jeu 1.25) dans `modDesc.xml` (déjà fait), changelog 1.1.0.0 à la fin de la description EN/FR/DE (déjà fait).
+- [ ] TestRunner **0.9.24** (gdn.giants-software.com) lancé sur le ZIP : résultat PASS.
 - [ ] Aucun `print` ni log de debug (vérifié par le CI du dépôt).
 - [ ] Test rapide en solo : choisir un logo intégré, changer la couleur, sauvegarder, recharger.
 - [ ] Test multijoueur / serveur dédié : import, partage, logo en couleurs, suppression.

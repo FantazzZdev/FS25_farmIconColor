@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<modDesc descVersion="110">
+<modDesc descVersion="116">
     <title>
         <en>Farm Icon Color</en>
         <fr>Icônes De Fermes Personnalisées</fr>
@@ -28,7 +28,16 @@ Custom logos:
 Controls:
 - Farm creation/editing window: Logos (L) or click the logo to open the logo grid.
 - Logo window: Confirm (Enter), Back (Esc); admin: Import (INSERT), Delete (DEL, press twice).
-- Singleplayer: F9 opens the farm colour customisation.]]>
+- Singleplayer: F9 opens the farm colour customisation.
+
+Changelog 1.1.0.0:
+- New logo window: a grid of logos opened with the Logos button (L) or by clicking the logo.
+- Custom logos: import your own logos (admin), saved in the savegame and sent to every player, dedicated servers included.
+- Coloured logos keep their own colours; white logos take the farm colour.
+- Delete a custom logo for every player (admin).
+- Colours and logos are saved in the savegame again.
+- Multiplayer: only the admin and the farm members can change a farm's colour and logo.
+- Shortcuts no longer trigger while typing the farm name or password.]]>
         </en>
         <fr>
             <![CDATA[Icônes De Fermes Personnalisées donne une vraie identité visuelle à chaque ferme dans Farming Simulator 25.
@@ -51,7 +60,16 @@ Logos personnalisés :
 Commandes :
 - Fenêtre de création/modification de ferme : Logos (L) ou clic sur le logo pour ouvrir la grille des logos.
 - Fenêtre des logos : Valider (Entrée), Retour (Échap) ; admin : Importer (INSER), Supprimer (SUPPR, deux appuis).
-- En solo : F9 ouvre la personnalisation de la couleur de ferme.]]>
+- En solo : F9 ouvre la personnalisation de la couleur de ferme.
+
+Changelog 1.1.0.0 :
+- Nouvelle fenêtre des logos : grille de logos ouverte avec le bouton Logos (L) ou un clic sur le logo.
+- Logos personnalisés : importez vos propres logos (admin), enregistrés dans la sauvegarde et envoyés à tous les joueurs, serveurs dédiés compris.
+- Les logos en couleurs gardent leurs couleurs ; les logos blancs prennent la couleur de la ferme.
+- Suppression d'un logo personnalisé pour tous les joueurs (admin).
+- Les couleurs et logos sont de nouveau enregistrés dans la sauvegarde.
+- Multijoueur : seuls l'admin et les membres d'une ferme peuvent modifier sa couleur et son logo.
+- Les raccourcis ne se déclenchent plus pendant la saisie du nom ou du mot de passe de la ferme.]]>
         </fr>
         <de>
             <![CDATA[Bauernhof-Symbolfarbe gibt jedem Hof in Farming Simulator 25 eine echte visuelle Identität.
@@ -74,7 +92,16 @@ Eigene Logos:
 Steuerung:
 - Fenster zum Erstellen/Bearbeiten eines Hofes: Logos (L) oder Klick auf das Logo öffnet das Logo-Raster.
 - Logo-Fenster: Bestätigen (Enter), Zurück (Esc); Admin: Importieren (EINFG), Löschen (ENTF, zweimal drücken).
-- Einzelspieler: F9 öffnet die Anpassung der Hoffarbe.]]>
+- Einzelspieler: F9 öffnet die Anpassung der Hoffarbe.
+
+Changelog 1.1.0.0:
+- Neues Logo-Fenster: ein Logo-Raster, geöffnet mit der Schaltfläche Logos (L) oder per Klick auf das Logo.
+- Eigene Logos: Importiere deine eigenen Logos (Admin), im Spielstand gespeichert und an alle Spieler gesendet, auch auf dedizierten Servern.
+- Farbige Logos behalten ihre Farben; weiße Logos übernehmen die Hoffarbe.
+- Löschen eines eigenen Logos für alle Spieler (Admin).
+- Farben und Logos werden wieder im Spielstand gespeichert.
+- Mehrspieler: Nur der Admin und die Mitglieder eines Hofes können dessen Farbe und Logo ändern.
+- Tastenkürzel werden beim Eingeben von Hofname oder Passwort nicht mehr ausgelöst.]]>
         </de>
     </description>
 
