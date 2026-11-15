@@ -160,6 +160,7 @@ function LS.notify(textKey, fallback, value, isError)
         return
     end
 
+    LS.notifyCount = (LS.notifyCount or 0) + 1
     local text = string.format(FarmIconColor:getTranslatedText(textKey, fallback), tostring(value or ""))
     local notificationType = nil
 

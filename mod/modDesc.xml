@@ -126,6 +126,11 @@ Changelog 1.1.0.0:
             <fr>Logo partagé avec tous les joueurs : %s</fr>
             <de>Logo für alle Spieler freigegeben: %s</de>
         </text>
+        <text name="farmIconColor_logoNoneNew">
+            <en>No new logo in the customLogos folder (already imported?)</en>
+            <fr>Aucun nouveau logo dans le dossier customLogos (déjà importés ?)</fr>
+            <de>Kein neues Logo im Ordner customLogos (bereits importiert?)</de>
+        </text>
         <text name="farmIconColor_logoUploadFailed">
             <en>The server did not accept the logo (log in as server admin): %s</en>
             <fr>Le serveur n'a pas accepté le logo (connecte-toi en admin du serveur) : %s</fr>

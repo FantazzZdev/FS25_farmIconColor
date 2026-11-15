@@ -160,8 +160,20 @@ function D:onClickImport()
         return false
     end
 
+    local sync = FarmIconColorLogoSync
+    local logosBefore = #(FarmIconColor.logoOrder or {})
+    local notesBefore = sync ~= nil and (sync.notifyCount or 0) or 0
+
     FarmIconColor:importCustomLogosFromFolder()
     self:refresh()
+
+    -- Nothing added and nothing reported: say so instead of staying silent.
+    local notesAfter = sync ~= nil and (sync.notifyCount or 0) or 0
+
+    if #(FarmIconColor.logoOrder or {}) == logosBefore and notesAfter == notesBefore and sync ~= nil and sync.notify ~= nil then
+        sync.notify("farmIconColor_logoNoneNew", "No new logo in the customLogos folder (already imported?)", nil, false)
+    end
+
     return false
 end
 
